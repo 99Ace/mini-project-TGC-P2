@@ -3,6 +3,8 @@
 const express = require('express');
 const MongoUtil = require("./MongoUtil.js");
 const ObjectId = require('mongodb').ObjectId;
+const Mail = require('nodemailer/lib/mailer');
+
 require('dotenv').config();
 
 
@@ -30,13 +32,25 @@ async function main() {
     // ==========================================================
     // REFERENCE ROUTE
     // ==========================================================
-    app.get('/', async (req, res) => {
-        res.send("Routed")
+    app.get('/owners', async (req, res) => {
+        try {
+            let data = await CAR_OWNER.find().toArray();
+            res.status(200)
+            res.send(data)
+            console.log('data sent')
+        } 
+        catch(e)  {
+            res.status(500);
+            res.send({
+                message : "No data available"
+            })
+        }
     })
     
     // ==========================================================
     // LISTEN
     // ==========================================================
+    // app.listen( process.env.PORT, function() {
     app.listen(3000, function () {
         console.log("...We Are Serving...")
     })
