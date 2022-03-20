@@ -5,6 +5,18 @@ const MongoUtil = require("./MongoUtil.js");
 const ObjectId = require('mongodb').ObjectId;
 const Mail = require('nodemailer/lib/mailer');
 
+// import my functions
+const Functions = require('./research/Functions')
+
+// Session
+const session = require("express-session");
+const bodyParser = require("body-parser");
+   
+// encrypter
+const Cryptr = require('cryptr');
+const cryptr = new Cryptr('myTotalySecretKey'); 
+
+// Set up dotenv
 require('dotenv').config();
 
 
@@ -16,12 +28,19 @@ async function main() {
     app.use(express.json());
 
     // ==========================================================
-    // 1B. SETUP STATIC FOLDER
+    // 1B. SETUP SESSION
+    // ==========================================================
+    app.use(bodyParser.urlencoded({
+        extended:true
+    }))
+    
+    // ==========================================================
+    // 1C. SETUP STATIC FOLDER
     // ==========================================================
     app.use(express.static('public')); // set up static file for images, css
 
     // ==========================================================
-    // 1C. CONNECT TO MONGODB
+    // 1D. CONNECT TO MONGODB
     // ==========================================================
     await MongoUtil.connect(process.env.MONGO_URI, process.env.DBNAME);
     let db = MongoUtil.getDB();
@@ -33,7 +52,6 @@ async function main() {
     // ==========================================================
     // REFERENCE ROUTE
     // ==========================================================
-    
     // READ ALL OWNERS ROUTE - ONLY ADMIN ACCESS
     app.get('/admin/owners', async (req, res) => {
         try {
@@ -49,49 +67,88 @@ async function main() {
             });
         };
     })
-    // FIND ONE USER AND VALIDATE LOGIN
-    app.get('/owner/:username/:password/login', async (req, res) => {
+
+    // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful
+    app.get('/user/:username/:password/login', async (req, res) => {
+        console.log("=======LOGIN AUTH ROUTE========")
         try {
             // download the data from entry
             let username = req.params.username;
-            let password = req.params.password;
-            let message
-      
+            let password = cryptr.decrypt(req.params.password); // decrypt the password
+            console.log(password)
+            let auth
+            
             // find and download the data from database
             let data = await CAR_OWNER.find(
                 { 'username': username }
             ).toArray();
 
             // check if username and password is correct
-            if (username==data[0].username && password==data[0].password){
+            if (username == data[0].username && password == data[0].password) {
                 // remove password detail
                 delete data[0]["password"];
                 // pass successful login message
-                message = "Login successful";
+                auth = true;
             }
             else {
                 data[0] = []
-                message = "Invalid username/password"
+                auth = false
             }
-            let loginData = {
-                data : data[0],
-                message
+            // create user data
+            let userData = {
+                data: data[0],
+                auth
             }
-            
+
             res.status(200);
-            res.send(loginData);
+            res.send(userData);
             console.log('Login successful, data sent');
         }
         catch (e) {
             res.status(500);
             res.send({
-                data:[],
-                message: "No data available"
+                data: [],
+                auth: false
             })
         }
     })
- 
-  
+    // REGISTER PATH : CREATE A NEW USER
+    app.post('/user/register', async (req,res)=>{
+        let {
+            username, fname,lname,
+            email, contact,termAndConditionAccepted
+        } = req.body;
+        let password = cryptr.encrypt(req.body.password)
+        try {
+            await CAR_OWNER.insertOne({
+                username, 
+                fname,
+                lname,
+                email, 
+                password,
+                contact,
+                ownership : [],
+                interest : [],
+                termAndConditionAccepted
+            })
+            res.status(200);
+            res.send({
+                message : "Document inserted"
+            })
+        }
+        catch(e){
+            res.status(500);
+            res.send({
+                message : "Unable to insert document"
+            })
+            console.log(e)
+        }
+
+
+        
+        
+        
+    })
 
     // ==========================================================
     // LISTEN
