@@ -6,15 +6,16 @@ const ObjectId = require('mongodb').ObjectId;
 const Mail = require('nodemailer/lib/mailer');
 
 // import my functions
-const Functions = require('./research/Functions')
+// const Functions = require('./Functions.js')
 
 // Session
 const session = require("express-session");
 const bodyParser = require("body-parser");
-   
+
 // encrypter
-const Cryptr = require('cryptr');
-const cryptr = new Cryptr('myTotalySecretKey'); 
+const Cryptr = require('cryptr');
+const { use } = require('express/lib/application');
+const cryptr = new Cryptr('myTotalySecretKey');
 
 // Set up dotenv
 require('dotenv').config();
@@ -31,9 +32,9 @@ async function main() {
     // 1B. SETUP SESSION
     // ==========================================================
     app.use(bodyParser.urlencoded({
-        extended:true
+        extended: true
     }))
-    
+
     // ==========================================================
     // 1C. SETUP STATIC FOLDER
     // ==========================================================
@@ -48,9 +49,8 @@ async function main() {
     let CAR_OWNER = db.collection(process.env.COLLECTION_OWNER);
     let CAR_REFERENCE = db.collection(process.env.COLLECTION_REFERENCE);
 
-
     // ==========================================================
-    // REFERENCE ROUTE
+    // ===================== R O U T E S ========================
     // ==========================================================
     // READ ALL OWNERS ROUTE - ONLY ADMIN ACCESS
     app.get('/admin/owners', async (req, res) => {
@@ -68,6 +68,7 @@ async function main() {
         };
     })
 
+    // ===================== A U T H ============================
     // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful
     app.get('/user/:username/:password/login', async (req, res) => {
         console.log("=======LOGIN AUTH ROUTE========")
@@ -77,7 +78,7 @@ async function main() {
             let password = cryptr.decrypt(req.params.password); // decrypt the password
             console.log(password)
             let auth
-            
+
             // find and download the data from database
             let data = await CAR_OWNER.find(
                 { 'username': username }
@@ -113,42 +114,101 @@ async function main() {
         }
     })
     // REGISTER PATH : CREATE A NEW USER
-    app.post('/user/register', async (req,res)=>{
+    app.post('/user/register', async (req, res) => {
         let {
-            username, fname,lname,
-            email, contact,termAndConditionAccepted
+            username, fname, lname,
+            email, contact, termAndConditionAccepted
         } = req.body;
         let password = cryptr.encrypt(req.body.password)
         try {
             await CAR_OWNER.insertOne({
-                username, 
+                username,
                 fname,
                 lname,
-                email, 
+                email,
                 password,
                 contact,
-                ownership : [],
-                interest : [],
-                termAndConditionAccepted
+                ownership: [],
+                interest: [],
+                termAndConditionAccepted,
             })
             res.status(200);
             res.send({
-                message : "Document inserted"
+                message: "Document inserted"
             })
         }
-        catch(e){
+        catch (e) {
             res.status(500);
             res.send({
-                message : "Unable to insert document"
+                message: "Unable to insert document"
             })
             console.log(e)
         }
-
-
-        
-        
-        
     })
+    // UPDATE PATH : EDIT USER PROFILE
+    app.put('/user/update', async (req, res) => {
+        console.log("===== EDIT USER ======")
+        try {
+            
+
+            let {
+                userId,
+                username,
+                fname,
+                lname,
+                email,
+                contact,
+            } = req.body;
+            
+            let data = await CAR_OWNER.find(
+                { '_id': ObjectId(userId) }
+            ).toArray();
+            data=data[0];
+            console.log(data);
+            
+
+            let updateData = {
+                "_id" : ObjectId(userId),
+                username,
+                fname,
+                lname,
+                email,
+                password:data.password,
+                ownership:data.ownership,
+                interest:data.interest,
+                termAndConditionAccepted:true
+            }
+            console.log(updateData)
+            
+
+            // Update the user data
+            await CAR_OWNER.updateOne(
+                {
+                    _id: ObjectId(userId)
+                },
+                {
+                    "$set": updateData
+                });
+
+            res.status(200);
+            res.send({
+                "message": "User profile is updated"
+            })
+        } catch (e) {
+            res.status(500);
+            res.send({
+                'message': "Unable to update User",
+                "error" : e
+            })
+            console.log(e);
+        }
+    })
+
+
+
+
+
+
 
     // ==========================================================
     // LISTEN
