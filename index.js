@@ -6,7 +6,7 @@ const ObjectId = require('mongodb').ObjectId;
 const Mail = require('nodemailer/lib/mailer');
 
 // import my functions
-// const Functions = require('./Functions.js')
+const Functions = require('./Functions.js')
 
 // Session
 const session = require("express-session");
@@ -116,16 +116,14 @@ async function main() {
     })
     // REGISTER PATH : CREATE A NEW USER
     app.post('/user/register', async (req, res) => {
+        console.log("======= REGISTER ROUTE ========")
         let {
             username, fname, lname,
             email, contact, termAndConditionAccepted
         } = req.body;
         let password = cryptr.encrypt(req.body.password);
-        
-        let today = new Date();
-        // Set hours
-        today.setHours(7);
-        
+        let dateJoin = Functions.currentDate();
+
         try {
             await CAR_OWNER.insertOne({
                 username,
@@ -137,6 +135,7 @@ async function main() {
                 ownership: [],
                 interest: [],
                 termAndConditionAccepted,
+                dateJoin
             })
             res.status(200);
             res.send({
@@ -170,17 +169,18 @@ async function main() {
             data = data[0];
             console.log(data);
 
-
             let updateData = {
                 "_id": ObjectId(userId),
                 username,
                 fname,
                 lname,
                 email,
+                contact,
                 password: data.password,
                 ownership: data.ownership,
                 interest: data.interest,
-                termAndConditionAccepted: true
+                termAndConditionAccepted: true,
+                dateJoin: data.dateJoin
             }
             console.log(updateData)
 
@@ -208,30 +208,34 @@ async function main() {
         }
     })
     // DELETE PATH  : DELETE USER
-    app.delete('/user/:userId/delete', async (req,res)=>{
+    app.delete('/user/:userId/delete', async (req, res) => {
         console.log("===== DELETE USER ======")
         try {
             await CAR_OWNER.deleteOne({
-                _id:ObjectId(req.params.userId)
+                _id: ObjectId(req.params.userId)
             })
             res.status(200);
-            res.send ({
-                "message" : "User is deleted"
+            res.send({
+                "message": "User is deleted"
             });
         } catch (e) {
             res.status(500);
-            res.send ({
-                "message" : "Error removing User from database"
+            res.send({
+                "message": "Error removing User from database"
             });
             console.log(e);
         }
     })
 
+    app.get('/', (req, res) => {
+        
+        res.send("Done")
+    })
     // ==========================================================
     // LISTEN
     // ==========================================================
     // app.listen( process.env.PORT, function() {
-    app.listen( process.env.PORT || 3000, function () {
+    app.listen(process.env.PORT || 3000, function () {
         console.log("...We Are Serving...")
     })
 }
