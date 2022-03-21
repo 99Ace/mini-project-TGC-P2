@@ -54,7 +54,7 @@ async function main() {
     // ===================== R O U T E S ========================
     // ==========================================================
     // READ ALL OWNERS ROUTE - ONLY ADMIN ACCESS
-    app.get('/', async (req, res) => {
+    app.get('/admin/owners', async (req, res) => {
         try {
             let data = await CAR_OWNER.find().toArray();
             res.status(200);
