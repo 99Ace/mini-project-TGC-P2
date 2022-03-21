@@ -68,6 +68,7 @@ async function main() {
             });
         };
     })
+    // ==========================================================
 
     // ===================== A U T H ============================
     // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful
@@ -226,6 +227,29 @@ async function main() {
             console.log(e);
         }
     })
+    // ==========================================================
+
+    // ================== C A R   R O U T E =====================
+    app.get('/car/listing', async (req,res)=> {
+        console.log("======= CAR LISTING ========")
+        try {
+            let data = await CAR_INFO.find().toArray();
+            res.status(200);
+            res.send(data);
+            console.log('Login successful, data sent');
+        }
+        catch (e) {
+            res.status(500);
+            res.send({
+                data: [],
+                auth: false
+            })
+        }
+    })
+    
+    
+    // ==========================================================
+    
 
     app.get('/', (req, res) => {
         
