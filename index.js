@@ -155,8 +155,6 @@ async function main() {
     app.put('/user/update', async (req, res) => {
         console.log("===== EDIT USER ======")
         try {
-
-
             let {
                 userId,
                 username,
@@ -210,7 +208,24 @@ async function main() {
         }
     })
     // DELETE PATH  : DELETE USER
-
+    app.delete('/user/:userId/delete', async (req,res)=>{
+        console.log("===== DELETE USER ======")
+        try {
+            await CAR_OWNER.deleteOne({
+                _id:ObjectId(req.params.userId)
+            })
+            res.status(200);
+            res.send ({
+                "message" : "User is deleted"
+            });
+        } catch (e) {
+            res.status(500);
+            res.send ({
+                "message" : "Error removing User from database"
+            });
+            console.log(e);
+        }
+    })
 
     // ==========================================================
     // LISTEN
