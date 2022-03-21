@@ -15,6 +15,7 @@ const bodyParser = require("body-parser");
 // encrypter
 const Cryptr = require('cryptr');
 const { use } = require('express/lib/application');
+const { default: axios } = require('axios');
 const cryptr = new Cryptr('myTotalySecretKey');
 
 // Set up dotenv
@@ -119,7 +120,12 @@ async function main() {
             username, fname, lname,
             email, contact, termAndConditionAccepted
         } = req.body;
-        let password = cryptr.encrypt(req.body.password)
+        let password = cryptr.encrypt(req.body.password);
+        
+        let today = new Date();
+        // Set hours
+        today.setHours(7);
+        
         try {
             await CAR_OWNER.insertOne({
                 username,
@@ -149,7 +155,7 @@ async function main() {
     app.put('/user/update', async (req, res) => {
         console.log("===== EDIT USER ======")
         try {
-            
+
 
             let {
                 userId,
@@ -159,27 +165,27 @@ async function main() {
                 email,
                 contact,
             } = req.body;
-            
+
             let data = await CAR_OWNER.find(
                 { '_id': ObjectId(userId) }
             ).toArray();
-            data=data[0];
+            data = data[0];
             console.log(data);
-            
+
 
             let updateData = {
-                "_id" : ObjectId(userId),
+                "_id": ObjectId(userId),
                 username,
                 fname,
                 lname,
                 email,
-                password:data.password,
-                ownership:data.ownership,
-                interest:data.interest,
-                termAndConditionAccepted:true
+                password: data.password,
+                ownership: data.ownership,
+                interest: data.interest,
+                termAndConditionAccepted: true
             }
             console.log(updateData)
-            
+
 
             // Update the user data
             await CAR_OWNER.updateOne(
@@ -198,11 +204,13 @@ async function main() {
             res.status(500);
             res.send({
                 'message': "Unable to update User",
-                "error" : e
+                "error": e
             })
             console.log(e);
         }
     })
+    // DELETE PATH  : DELETE USER
+
 
 
 
@@ -214,7 +222,7 @@ async function main() {
     // LISTEN
     // ==========================================================
     // app.listen( process.env.PORT, function() {
-    app.listen(3000, function () {
+    app.listen( process.env.PORT  || 3000, function () {
         console.log("...We Are Serving...")
     })
 }
