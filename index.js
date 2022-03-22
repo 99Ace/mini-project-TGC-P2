@@ -118,14 +118,15 @@ async function main() {
     // REGISTER PATH : CREATE A NEW USER
     app.post('/user/register', async (req, res) => {
         console.log("======= REGISTER ROUTE ========")
-        let {
-            username, fname, lname,
-            email, contact, termAndConditionAccepted
-        } = req.body;
-        let password = cryptr.encrypt(req.body.password);
-        let dateJoin = Functions.currentDate();
 
         try {
+            let {
+                username, fname, lname,
+                email, contact, termAndConditionAccepted
+            } = req.body;
+            let password = cryptr.encrypt(req.body.password);
+            let dateJoin = Functions.currentDate();
+
             await CAR_OWNER.insertOne({
                 username,
                 fname,
@@ -164,11 +165,11 @@ async function main() {
                 contact,
             } = req.body;
 
-            let data = await CAR_OWNER.find(
+            let user = await CAR_OWNER.find(
                 { '_id': ObjectId(userId) }
             ).toArray();
-            data = data[0];
-            console.log(data);
+            user = user[0];
+            console.log(user);
 
             let updateData = {
                 "_id": ObjectId(userId),
@@ -177,11 +178,11 @@ async function main() {
                 lname,
                 email,
                 contact,
-                password: data.password,
-                ownership: data.ownership,
-                interest: data.interest,
+                password: user.password,
+                ownership: user.ownership,
+                interest: user.interest,
                 termAndConditionAccepted: true,
-                dateJoin: data.dateJoin
+                dateJoin: user.dateJoin
             }
             console.log(updateData)
 
@@ -208,7 +209,7 @@ async function main() {
             console.log(e);
         }
     })
-    // DELETE PATH  : DELETE USER
+    // DELETE PATH : DELETE USER
     app.delete('/user/:userId/delete', async (req, res) => {
         console.log("===== DELETE USER ======")
         try {
@@ -230,6 +231,7 @@ async function main() {
     // ==========================================================
 
     // ================== C A R   R O U T E =====================
+    // READ PATH : ALL CAR LISTING
     app.get('/car/listing', async (req,res)=> {
         console.log("======= CAR LISTING ========")
         try {
@@ -246,7 +248,79 @@ async function main() {
             })
         }
     })
-    
+    // POST PATH : CREATE A NEW CAR LISTING
+    app.post('/car/create', async (req,res)=>{
+        console.log("======= CREATE CAR ROUTE ========")
+
+        try {
+            // Load in body
+            let {
+                userId,
+                carPlate,
+                ownerId,
+                ownerIdType,
+                carPricing,
+                carImages,
+                carMileage,
+                carAccessories,
+                carMake,
+                carModel,
+                carRegDate,
+                carYearOfMake,
+                carCOE,
+                carOMV,
+                carARF,
+                carNoOfOwner
+            } = req.body
+            console.log(req.body)
+            // Insert in the new car
+            let response = await CAR_INFO.insertOne({
+                userId : ObjectId(userId),
+                carPlate,
+                ownerId,
+                ownerIdType,
+                carPricing,
+                carImages,
+                carMileage,
+                carAccessories,
+                carMake,
+                carModel,
+                carRegDate,
+                carYearOfMake,
+                carCOE,
+                carOMV,
+                carARF,
+                carNoOfOwner
+            })                   
+            // Find the user who insert the car
+            let user = await CAR_OWNER.find(
+                { '_id': ObjectId(userId) }
+            ).toArray();
+            console.log("Finding the user who inserted")
+            console.log(user);
+            // Update the cars ownership to user
+            user[0].ownership.push( response.insertedId )
+            console.log("inserted")
+            console.log(user[0]);
+            // Save to Car Owner database
+            await CAR_OWNER.updateOne(
+                { "_id":ObjectId(userId)},
+                { $set: { ownership : user[0].ownership }}
+            )
+            res.status(200);
+            res.send({
+                data: user,
+                message: "Document inserted"
+            })
+        }
+        catch (e) {
+            res.status(500);
+            res.send({
+                message: "Unable to insert document"
+            })
+            console.log(e)
+        }
+    })
     
     // ==========================================================
     
@@ -255,6 +329,8 @@ async function main() {
         
         res.send("Done")
     })
+   
+    
     // ==========================================================
     // LISTEN
     // ==========================================================
