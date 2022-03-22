@@ -116,18 +116,28 @@ async function main() {
         }
     })
     // PROFILE PATH : VIEW USER PROFILE 
-    app.get('/user/:userId/profile', async (req,res)=>{
-        let user = await CAR_OWNER.find(
-            { '_id': ObjectId(req.params.userId) }
-        ).toArray();
-        let ownedCars = await CAR_INFO.find(
-            { 'userId': ObjectId(req.params.userId)}
-        ).toArray();
+    app.get('/user/:userId/profile', async (req, res) => {
+        try {
+            let user = await CAR_OWNER.find(
+                { '_id': ObjectId(req.params.userId) }
+            ).toArray();
+            let ownedCars = await CAR_INFO.find(
+                { 'userId': ObjectId(req.params.userId) }
+            ).toArray();
 
-        user = user[0];
-        user.ownedCars = [...ownedCars]
-        console.log(user, ownedCars);
-        res.send(user)
+            user = user[0];
+            user.ownedCars = [...ownedCars]
+            console.log(user, ownedCars);
+            res.send(user)
+        }
+        catch (e) {
+            res.status(500);
+            res.send({
+                message: "User not found"
+            })
+            console.log(e)
+        }
+
     })
     // REGISTER PATH : CREATE A NEW USER
     app.post('/user/register', async (req, res) => {
@@ -240,12 +250,12 @@ async function main() {
             console.log(e);
         }
     })
-    
+
     // ==========================================================
 
     // ================== C A R   R O U T E =====================
     // READ PATH : ALL CAR LISTING
-    app.get('/car/listing', async (req,res)=> {
+    app.get('/car/listing', async (req, res) => {
         console.log("======= CAR LISTING ========")
         try {
             let data = await CAR_INFO.find().toArray();
@@ -262,7 +272,7 @@ async function main() {
         }
     })
     // POST PATH : CREATE A NEW CAR LISTING
-    app.post('/car/create', async (req,res)=>{
+    app.post('/car/create', async (req, res) => {
         console.log("======= CREATE CAR ROUTE ========")
 
         try {
@@ -288,7 +298,7 @@ async function main() {
 
             // Insert in the new car
             let response = await CAR_INFO.insertOne({
-                userId : ObjectId(userId),
+                userId: ObjectId(userId),
                 carPlate,
                 ownerId,
                 ownerIdType,
@@ -305,9 +315,9 @@ async function main() {
                 carARF,
                 carNoOfOwner,
                 availability: true,
-                datePost : Functions.currentDate(),
-            })                   
-            
+                datePost: Functions.currentDate(),
+            })
+
             res.status(200);
             res.send({
                 message: "Document inserted"
@@ -351,11 +361,11 @@ async function main() {
             ).toArray();
             car = car[0];
             console.log(car);
-                
-             // organize the data   
+
+            // organize the data   
             let updateData = {
                 "_id": ObjectId(carId),
-                userId : car.userId,
+                userId: car.userId,
                 carPlate,
                 ownerId,
                 ownerIdType,
@@ -372,7 +382,7 @@ async function main() {
                 carARF,
                 carNoOfOwner,
                 availability,
-                datePost : car.datePost? car.datePost: Functions.currentDate()
+                datePost: car.datePost ? car.datePost : Functions.currentDate()
             }
             console.log(updateData)
 
@@ -416,12 +426,12 @@ async function main() {
             // remove from user's ownership
             await CAR_OWNER.update(
                 { _id: req.body.userId },
-                { $pull: { 'ownership':  {'_id' : ObjectId(req.params.carId)}} },
+                { $pull: { 'ownership': { '_id': ObjectId(req.params.carId) } } },
                 (error, success) => {
-                  if (error) console.log(error);
-                  console.log(success);
+                    if (error) console.log(error);
+                    console.log(success);
                 }
-             );
+            );
             // console.log("User after delete")
             // console.log(user)
 
@@ -438,15 +448,40 @@ async function main() {
         }
     })
     // SEARCH PATH : SEARCH BY A FEW QUERY OPTIONS
+    app.get('/car/search', async (req, res) => {
+        console.log("======== SEARCH ========")
+        try {
+            let carMake = req.query.make || ""
+            console.log(carMake);
+
+            let data = await CAR_INFO.find(
+                {
+                    // carMake : make
+                    carMake : { $regex: carMake, $options: 'i' }
+                }
+            ).toArray()
+            console.log(data)
+
+            res.send("Searched")
+        }
+        catch (e) {
+            res.status(500);
+            res.send({
+                message: "Error finding your desired car"
+            })
+            console.log(e)
+        }
+
+    })
     // ==========================================================
     app.get('/', async (req, res) => {
-        
-       
-        
+
+
+
         res.send("Done")
     })
-   
-    
+
+
     // ==========================================================
     // LISTEN
     // ==========================================================
