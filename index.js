@@ -272,7 +272,8 @@ async function main() {
                 carARF,
                 carNoOfOwner
             } = req.body
-            console.log(req.body)
+            let datePost = Functions.currentDate();
+
             // Insert in the new car
             let response = await CAR_INFO.insertOne({
                 userId : ObjectId(userId),
@@ -290,7 +291,8 @@ async function main() {
                 carCOE,
                 carOMV,
                 carARF,
-                carNoOfOwner
+                carNoOfOwner,
+                datePost
             })                   
             // Find the user who insert the car
             let user = await CAR_OWNER.find(
@@ -319,6 +321,82 @@ async function main() {
                 message: "Unable to insert document"
             })
             console.log(e)
+        }
+    })
+    // UPDATE PATH : EDIT USER PROFILE
+    app.put('/car/update', async (req, res) => {
+        console.log("===== EDIT CAR INFO ======")
+        try {
+            // load data in from body
+            let {
+                carId,
+                carPlate,
+                ownerId,
+                ownerIdType,
+                carPricing,
+                carImages,
+                carMileage,
+                carAccessories,
+                carMake,
+                carModel,
+                carRegDate,
+                carYearOfMake,
+                carCOE,
+                carOMV,
+                carARF,
+                carNoOfOwner
+            } = req.body
+            // find the edited car information
+            let car = await CAR_INFO.find(
+                { '_id': ObjectId(carId) }
+            ).toArray();
+            car = car[0];
+            console.log(car);
+                
+             // organize the data   
+            let updateData = {
+                "_id": ObjectId(carId),
+                userId : car.userId,
+                carPlate,
+                ownerId,
+                ownerIdType,
+                carPricing,
+                carImages,
+                carMileage,
+                carAccessories,
+                carMake,
+                carModel,
+                carRegDate,
+                carYearOfMake,
+                carCOE,
+                carOMV,
+                carARF,
+                carNoOfOwner,
+                datePost : car.datePost? car.datePost: Functions.currentDate()
+            }
+            console.log(updateData)
+
+
+            // Update the car information
+            await CAR_INFO.updateOne(
+                {
+                    _id: ObjectId(carId)
+                },
+                {
+                    "$set": updateData
+                });
+
+            res.status(200);
+            res.send({
+                "message": "Car information is updated"
+            })
+        } catch (e) {
+            res.status(500);
+            res.send({
+                'message': "Unable to update Car information",
+                "error": e
+            })
+            console.log(e);
         }
     })
     
