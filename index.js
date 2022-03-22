@@ -115,6 +115,20 @@ async function main() {
             })
         }
     })
+    // PROFILE PATH : VIEW USER PROFILE 
+    app.get('/user/:userId/profile', async (req,res)=>{
+        let user = await CAR_OWNER.find(
+            { '_id': ObjectId(req.params.userId) }
+        ).toArray();
+        let ownedCars = await CAR_INFO.find(
+            { 'userId': ObjectId(req.params.userId)}
+        ).toArray();
+
+        user = user[0];
+        user.ownedCars = [...ownedCars]
+        console.log(user, ownedCars);
+        res.send(user)
+    })
     // REGISTER PATH : CREATE A NEW USER
     app.post('/user/register', async (req, res) => {
         console.log("======= REGISTER ROUTE ========")
@@ -134,7 +148,6 @@ async function main() {
                 email,
                 password,
                 contact,
-                ownership: [],
                 interest: [],
                 termAndConditionAccepted,
                 dateJoin
@@ -179,7 +192,6 @@ async function main() {
                 email,
                 contact,
                 password: user.password,
-                ownership: user.ownership,
                 interest: user.interest,
                 termAndConditionAccepted: true,
                 dateJoin: user.dateJoin
@@ -210,7 +222,7 @@ async function main() {
         }
     })
     // DELETE PATH : DELETE USER
-    app.delete('/user/:userId/delete', async (req, res) => {
+    app.delete('/user/:userId', async (req, res) => {
         console.log("===== DELETE USER ======")
         try {
             await CAR_OWNER.deleteOne({
@@ -228,6 +240,7 @@ async function main() {
             console.log(e);
         }
     })
+    
     // ==========================================================
 
     // ================== C A R   R O U T E =====================
@@ -272,7 +285,6 @@ async function main() {
                 carARF,
                 carNoOfOwner
             } = req.body
-            let datePost = Functions.currentDate();
 
             // Insert in the new car
             let response = await CAR_INFO.insertOne({
@@ -292,26 +304,12 @@ async function main() {
                 carOMV,
                 carARF,
                 carNoOfOwner,
-                datePost
+                availability: true,
+                datePost : Functions.currentDate(),
             })                   
-            // Find the user who insert the car
-            let user = await CAR_OWNER.find(
-                { '_id': ObjectId(userId) }
-            ).toArray();
-            console.log("Finding the user who inserted")
-            console.log(user);
-            // Update the cars ownership to user
-            user[0].ownership.push( response.insertedId )
-            console.log("inserted")
-            console.log(user[0]);
-            // Save to Car Owner database
-            await CAR_OWNER.updateOne(
-                { "_id":ObjectId(userId)},
-                { $set: { ownership : user[0].ownership }}
-            )
+            
             res.status(200);
             res.send({
-                data: user,
                 message: "Document inserted"
             })
         }
@@ -323,7 +321,7 @@ async function main() {
             console.log(e)
         }
     })
-    // UPDATE PATH : EDIT USER PROFILE
+    // UPDATE PATH : EDIT CAR LISTING
     app.put('/car/update', async (req, res) => {
         console.log("===== EDIT CAR INFO ======")
         try {
@@ -344,7 +342,8 @@ async function main() {
                 carCOE,
                 carOMV,
                 carARF,
-                carNoOfOwner
+                carNoOfOwner,
+                availability
             } = req.body
             // find the edited car information
             let car = await CAR_INFO.find(
@@ -372,6 +371,7 @@ async function main() {
                 carOMV,
                 carARF,
                 carNoOfOwner,
+                availability,
                 datePost : car.datePost? car.datePost: Functions.currentDate()
             }
             console.log(updateData)
@@ -399,11 +399,49 @@ async function main() {
             console.log(e);
         }
     })
-    
-    // ==========================================================
-    
+    // DELETE PATH : DELETE USER
+    app.delete('/car/:carId', async (req, res) => {
+        console.log("===== DELETE CAR LISTING ======")
+        try {
+            // Remove the car
+            // await CAR_INFO.deleteOne({
+            //     _id: ObjectId(req.params.carId)
+            // })
+            // Find the user who insert the car
+            let user = await CAR_OWNER.find(
+                { '_id': ObjectId(req.body.userId) }
+            ).toArray();
+            let carToBeDelete = new ObjectId(req.params.carId)
+            // console.log("CAR ID", carToBeDelete)
+            // remove from user's ownership
+            await CAR_OWNER.update(
+                { _id: req.body.userId },
+                { $pull: { 'ownership':  {'_id' : ObjectId(req.params.carId)}} },
+                (error, success) => {
+                  if (error) console.log(error);
+                  console.log(success);
+                }
+             );
+            // console.log("User after delete")
+            // console.log(user)
 
-    app.get('/', (req, res) => {
+            res.status(200);
+            res.send({
+                "message": "Car listing is deleted"
+            });
+        } catch (e) {
+            res.status(500);
+            res.send({
+                "message": "Error removing Car Listing from database"
+            });
+            console.log(e);
+        }
+    })
+    // SEARCH PATH : SEARCH BY A FEW QUERY OPTIONS
+    // ==========================================================
+    app.get('/', async (req, res) => {
+        
+       
         
         res.send("Done")
     })
