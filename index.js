@@ -5,6 +5,7 @@ const express = require('express');
 const MongoUtil = require("./MongoUtil.js");
 const ObjectId = require('mongodb').ObjectId;
 const Mail = require('nodemailer/lib/mailer');
+const cors = require("cors");
 
 // import my functions
 const Functions = require('./Functions.js')
@@ -28,7 +29,8 @@ async function main() {
     // ==========================================================
     let app = express();
     app.use(express.json());
-
+    app.use(cors());
+    
     // ==========================================================
     // 1B. SETUP SESSION
     // ==========================================================
