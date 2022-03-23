@@ -1,5 +1,6 @@
 // ==========================================================
 // SETUP ALL DEPENDENCIES
+// ==========================================================
 const express = require('express');
 const MongoUtil = require("./MongoUtil.js");
 const ObjectId = require('mongodb').ObjectId;
@@ -20,7 +21,6 @@ const cryptr = new Cryptr('myTotalySecretKey');
 
 // Set up dotenv
 require('dotenv').config();
-
 
 async function main() {
     // ==========================================================
@@ -261,7 +261,7 @@ async function main() {
             let data = await CAR_INFO.find().toArray();
             res.status(200);
             res.send(data);
-            console.log('Login successful, data sent');
+            console.log('Car data sent');
         }
         catch (e) {
             res.status(500);
@@ -296,6 +296,16 @@ async function main() {
                 carNoOfOwner
             } = req.body
 
+            // check if carRegDate is in date format else convert it
+            if ( !(carRegDate instanceof Date )){
+                carRegDate = new Date(carRegDate);
+            }
+            
+            let depreciation = Functions.calculateDepreciation({
+                carRegDate,carPricing,carARF
+            })
+            // console.log(depreciation)
+
             // Insert in the new car
             let response = await CAR_INFO.insertOne({
                 userId: ObjectId(userId),
@@ -314,6 +324,7 @@ async function main() {
                 carOMV,
                 carARF,
                 carNoOfOwner,
+                depreciation,
                 availability: true,
                 datePost: Functions.currentDate(),
             })
@@ -409,32 +420,14 @@ async function main() {
             console.log(e);
         }
     })
-    // DELETE PATH : DELETE USER
+    // DELETE PATH : DELETE CAR LISTING
     app.delete('/car/:carId', async (req, res) => {
         console.log("===== DELETE CAR LISTING ======")
         try {
             // Remove the car
-            // await CAR_INFO.deleteOne({
-            //     _id: ObjectId(req.params.carId)
-            // })
-            // Find the user who insert the car
-            let user = await CAR_OWNER.find(
-                { '_id': ObjectId(req.body.userId) }
-            ).toArray();
-            let carToBeDelete = new ObjectId(req.params.carId)
-            // console.log("CAR ID", carToBeDelete)
-            // remove from user's ownership
-            await CAR_OWNER.update(
-                { _id: req.body.userId },
-                { $pull: { 'ownership': { '_id': ObjectId(req.params.carId) } } },
-                (error, success) => {
-                    if (error) console.log(error);
-                    console.log(success);
-                }
-            );
-            // console.log("User after delete")
-            // console.log(user)
-
+            await CAR_INFO.deleteOne({
+                _id: ObjectId(req.params.carId)
+            })
             res.status(200);
             res.send({
                 "message": "Car listing is deleted"
@@ -452,17 +445,23 @@ async function main() {
         console.log("======== SEARCH ========")
         try {
             let carMake = req.query.make || ""
-            console.log(carMake);
+            let carModel = req.query.carModel || ""
+            console.log(carMake, carModel);
 
             let data = await CAR_INFO.find(
                 {
-                    // carMake : make
-                    carMake : { $regex: carMake, $options: 'i' }
+                    carMake: { $regex: carMake, $options: 'i' }
+                },
+                {
+                    carModel: { $regex: carModel, $options: 'i' }
                 }
             ).toArray()
             console.log(data)
 
-            res.send("Searched")
+            res.send({
+                data: data,
+                message: "Search found"
+            })
         }
         catch (e) {
             res.status(500);
@@ -475,9 +474,6 @@ async function main() {
     })
     // ==========================================================
     app.get('/', async (req, res) => {
-
-
-
         res.send("Done")
     })
 
