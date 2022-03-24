@@ -30,7 +30,7 @@ async function main() {
     let app = express();
     app.use(express.json());
     app.use(cors());
-    
+
     // ==========================================================
     // 1B. SETUP SESSION
     // ==========================================================
@@ -299,12 +299,12 @@ async function main() {
             } = req.body
 
             // check if carRegDate is in date format else convert it
-            if ( !(carRegDate instanceof Date )){
+            if (!(carRegDate instanceof Date)) {
                 carRegDate = new Date(carRegDate);
             }
-            
+
             let depreciation = Functions.calculateDepreciation({
-                carRegDate,carPricing,carARF
+                carRegDate, carPricing, carARF
             })
             // console.log(depreciation)
 
@@ -446,19 +446,43 @@ async function main() {
     app.get('/car/search', async (req, res) => {
         console.log("======== SEARCH ========")
         try {
-            let carMake = req.query.make || ""
+            let carMake = req.query.carMake || ""
             let carModel = req.query.carModel || ""
-            console.log(carMake, carModel);
+            let priceLower = req.query.priceLower|| 0
+            let priceUpper = req.query.priceUpper||9999999
+            let depreRangeLower = req.query.priceLower|| 0
+            let depreRangeUpper = req.query.priceUpper||999999
+            let yearRegLower = req.query.priceLower|| 0
+            let yearRegUpper = req.query.priceUpper||9999
+            let carType =req.query.carType || ""
+            
+            // let carType = req.query.carModel || ""
+            
+
+            console.log(carMake, carModel, priceLower, priceUpper);
 
             let data = await CAR_INFO.find(
                 {
-                    carMake: { $regex: carMake, $options: 'i' }
-                },
-                {
-                    carModel: { $regex: carModel, $options: 'i' }
+                    $and: [
+                        
+                        {
+                            carMake: { $regex: carMake, $options: 'i' }
+                        },
+                        {
+                            carModel: { $regex: carModel, $options: 'i' }
+                        },
+                        {
+                            carPricing : {
+                                "$gte" : parseInt(priceLower),
+                                "$lte" : parseInt(priceUpper)
+                            }
+                        },
+                        
+
+                    ]
                 }
             ).toArray()
-            console.log(data)
+            // console.log(data)
 
             res.send({
                 data: data,
