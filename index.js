@@ -79,7 +79,7 @@ async function main() {
         try {
             // download the data from entry
             let username = req.params.username;
-            let password = cryptr.decrypt(req.params.password); // decrypt the password
+            let password = req.params.password;
             console.log(password)
             let auth
 
@@ -87,9 +87,9 @@ async function main() {
             let data = await CAR_OWNER.find(
                 { 'username': username }
             ).toArray();
-
+            let passwordDatabase = cryptr.decrypt(data[0].password); // decrypt the password
             // check if username and password is correct
-            if (username == data[0].username && password == data[0].password) {
+            if (username == data[0].username && password == passwordDatabase) {
                 // remove password detail
                 delete data[0]["password"];
                 // pass successful login message
