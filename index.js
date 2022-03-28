@@ -18,6 +18,7 @@ const bodyParser = require("body-parser");
 const Cryptr = require('cryptr');
 const { use } = require('express/lib/application');
 const { default: axios } = require('axios');
+const { response } = require('express');
 const cryptr = new Cryptr('myTotalySecretKey');
 
 // Set up dotenv
@@ -78,42 +79,79 @@ async function main() {
         console.log("=======LOGIN AUTH ROUTE========")
         try {
             // download the data from entry
-            let username = req.params.username;
-            let password = req.params.password;
-            console.log(password)
-            let auth
+            let username = req.params.username || "";
+            let password = req.params.password || "";
+            let data = {}
 
-            // find and download the data from database
-            let data = await CAR_OWNER.find(
-                { 'username': username }
-            ).toArray();
-            let passwordDatabase = cryptr.decrypt(data[0].password); // decrypt the password
-            // check if username and password is correct
-            if (username == data[0].username && password == passwordDatabase) {
-                // remove password detail
-                delete data[0]["password"];
-                // pass successful login message
-                auth = true;
+            console.log("=========A U T H - L O G I N===========")
+            console.log(username, password)
+            console.log("Special Char exist", Functions.hasSpecialCharacters(username))
+            console.log("UserLength", username.length < 6)
+            console.log("PasswordLength", password.length < 6)
+
+            // Validation to check if it is unauthorized access
+            if (Functions.hasSpecialCharacters(username) ||
+                username.length < 6 ||
+                password.length < 6) {
+
+                console.log("Validation fail")
+                res.status(406);
+                res.send({
+                    data: {},
+                    auth: false,
+                    message: "Unauthorised Access"
+                })
             }
             else {
-                data[0] = []
-                auth = false
-            }
-            // create user data
-            let userData = {
-                data: data[0],
-                auth
-            }
+                // find and download the data from database
+                let response = await CAR_OWNER.find(
+                    { 'username': username }
+                ).toArray();
 
-            res.status(200);
-            res.send(userData);
-            console.log('Login successful, data sent');
+                if (response.length == 0) {
+                    res.status(406);
+                    res.send({
+                        data: {},
+                        auth: false,
+                        message: "Invalid user/password"
+                    });
+                } else {
+                    data = response[0];
+                    let passwordDatabase = cryptr.decrypt(data.password); // decrypt the password
+
+                    // check if username and password is correct
+                    if (username == data.username && password == passwordDatabase) {
+                        // remove password and detail not needed
+                        delete data["password"];
+                        delete data["termAndConditionAccepted"];
+
+                        res.status(200);
+                        res.send({
+                            data: data,
+                            auth: true,
+                            message: "login is successful"
+                        });
+                        console.log('Login successful, data sent');
+                    }
+                    else {
+                        res.status(406);
+                        res.send({
+                            data: {},
+                            auth: false,
+                            message: "Invalid user/password"
+                        });
+                        console.log('Invalid user/password');
+                    }
+
+                }
+            }
         }
         catch (e) {
             res.status(500);
             res.send({
-                data: [],
-                auth: false
+                data: {},
+                auth: false,
+                message: "Error accessing the database"
             })
         }
     })
@@ -448,23 +486,23 @@ async function main() {
         try {
             let carMake = req.query.carMake || ""
             let carModel = req.query.carModel || ""
-            let priceLower = req.query.priceLower|| 0
-            let priceUpper = req.query.priceUpper||9999999
-            let depreRangeLower = req.query.priceLower|| 0
-            let depreRangeUpper = req.query.priceUpper||999999
-            let yearRegLower = req.query.priceLower|| 0
-            let yearRegUpper = req.query.priceUpper||9999
-            let carType =req.query.carType || ""
-            
+            let priceLower = req.query.priceLower || 0
+            let priceUpper = req.query.priceUpper || 9999999
+            let depreRangeLower = req.query.priceLower || 0
+            let depreRangeUpper = req.query.priceUpper || 999999
+            let yearRegLower = req.query.priceLower || 0
+            let yearRegUpper = req.query.priceUpper || 9999
+            let carType = req.query.carType || ""
+
             // let carType = req.query.carModel || ""
-            
+
 
             console.log(carMake, carModel, priceLower, priceUpper);
 
             let data = await CAR_INFO.find(
                 {
                     $and: [
-                        
+
                         {
                             carMake: { $regex: carMake, $options: 'i' }
                         },
@@ -472,12 +510,12 @@ async function main() {
                             carModel: { $regex: carModel, $options: 'i' }
                         },
                         {
-                            carPricing : {
-                                "$gte" : parseInt(priceLower),
-                                "$lte" : parseInt(priceUpper)
+                            carPricing: {
+                                "$gte": parseInt(priceLower),
+                                "$lte": parseInt(priceUpper)
                             }
                         },
-                        
+
 
                     ]
                 }
@@ -508,7 +546,7 @@ async function main() {
     // LISTEN
     // ==========================================================
     // app.listen( process.env.PORT, function() {
-    app.listen(process.env.PORT || 3000, function () {
+    app.listen(process.env.PORT || 3001, function () {
         console.log("...We Are Serving...")
     })
 }
