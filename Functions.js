@@ -17,7 +17,7 @@ function calculateDepreciation(info) {
 }
 
 // ===================== VERIFICATION =====================
-// check for specialChars
+// check for specialChars; return true of have specialChars
 hasSpecialCharacters = (username) => {
     let specialChars = `/[!@#$%^&*()_+-=[]{};':"\\|,.<>/?]+/;`
     let userCheck = specialChars.split('').some(char => username.includes(char));
@@ -34,10 +34,19 @@ validateContact = (elementValue) => {
     return contact.test(elementValue);
 }
 // validate password matches
-validatePassword = () => {
-    this.setState({
-        passwordChecker: this.state.password === this.state.passwordConfirm
-    }, () => this.checkFormReady())
+validatePassword = (pass1, pass2) => {
+    if (pass1.length>5 && pass2.length>5) {
+        if (pass1 == pass2){
+            return true
+        }
+        else {
+            return false
+        }
+    }
+    else {
+        return false
+    }
+    
 }
 // validate car detail : car plate
 validateCarPlate = (elementValue) => {

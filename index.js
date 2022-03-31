@@ -109,7 +109,7 @@ async function main() {
                 ).toArray();
 
                 if (response.length == 0) {
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         data: {},
                         auth: false,
@@ -134,7 +134,7 @@ async function main() {
                         console.log('Login successful, data sent');
                     }
                     else {
-                        res.status(406);
+                        res.status(200);
                         res.send({
                             data: {},
                             auth: false,
@@ -184,24 +184,38 @@ async function main() {
         console.log("======= REGISTER ROUTE ========")
 
         try {
-            let {
-                username, fname, lname,
-                email, contact, termAndConditionAccepted
-            } = req.body;
-            let password = cryptr.encrypt(req.body.password);
-            let dateJoin = Functions.currentDate();
+            let username = req.body.username || "";;
+            let email = req.body.email || "";;
+            let contact = req.body.contact || "";;
+            let password = req.body.password || "";;
+            let passwordConfirm = req.body.passwordConfirm || "";;
 
-            await CAR_OWNER.insertOne({
-                username,
-                fname,
-                lname,
-                email,
-                password,
-                contact,
-                interest: [],
-                termAndConditionAccepted,
-                dateJoin
-            })
+            // Validation
+            let check1 = !Functions.hasSpecialCharacters(username);
+            let check2 = username.length >=6;
+            let check3 = Functions.validateEmail(email);
+            let check4 = Functions.validateContact(contact);
+            let check5 = Functions.validatePassword(password, passwordConfirm)
+            
+            console.log("check1", check1)
+            console.log("check2", check2)
+            console.log("check3", check3)
+            console.log("check4", check4)
+            console.log("check5", check5)
+
+            // let dateJoin = Functions.currentDate();
+
+            // await CAR_OWNER.insertOne({
+            //     username,
+            //     fname,
+            //     lname,
+            //     email,
+            //     password,
+            //     contact,
+            //     interest: [],
+            //     termAndConditionAccepted,
+            //     dateJoin
+            // })
             res.status(200);
             res.send({
                 message: "Document inserted"
