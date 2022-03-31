@@ -184,47 +184,80 @@ async function main() {
         console.log("======= REGISTER ROUTE ========")
 
         try {
-            let username = req.body.username || "";;
-            let email = req.body.email || "";;
-            let contact = req.body.contact || "";;
-            let password = req.body.password || "";;
-            let passwordConfirm = req.body.passwordConfirm || "";;
-
+            let username = req.body.username || "";
+            let email = req.body.email || "";
+            let contact = req.body.contact || "";
+            let password = req.body.password || "";
+            let passwordConfirm = req.body.passwordConfirm || "";
+            let ownCar = req.body.ownCar || "";
+            let carPlate = req.body.carPlate || false;
+            let ownerId = req.body.ownerId || "";
+            let ownerIdType = req.body.ownerIdType || "";
+            ownerIdType = ownerIdType.toString();
+            console.log(username)
             // Validation
-            let check1 = !Functions.hasSpecialCharacters(username);
-            let check2 = username.length >=6;
-            let check3 = Functions.validateEmail(email);
-            let check4 = Functions.validateContact(contact);
-            let check5 = Functions.validatePassword(password, passwordConfirm)
-            
-            console.log("check1", check1)
-            console.log("check2", check2)
-            console.log("check3", check3)
-            console.log("check4", check4)
-            console.log("check5", check5)
+            let validationCheck = [];
+            validationCheck.push(
+                Functions.validateUser(username),
+                Functions.validateEmail(email),
+                Functions.validateContact(contact),
+                Functions.validatePassword(password, passwordConfirm)
+            );
+            if (ownCar) {
+                validationCheck.push(
+                    Functions.validateCarPlate(carPlate),
+                    Functions.validateOwnerId(ownerId),
+                    Functions.validateOwnerIdType(ownerIdType)
+                )
+            }
 
-            // let dateJoin = Functions.currentDate();
+            console.log(ownerIdType, Functions.validateOwnerIdType(ownerIdType))
+            console.log(validationCheck);
+            if (!validationCheck.includes(false)) {
+                let dateJoin = Functions.currentDate();
+                password = cryptr.encrypt(password)
+                let response = await CAR_OWNER.insertOne({
+                    username,
+                    email,
+                    password,
+                    contact,
+                    ownCar: [],
+                    favorite: [],
+                    dateJoin
+                })
+                console.log(response)
+                let user_id = response.insertedId;
+                
 
-            // await CAR_OWNER.insertOne({
-            //     username,
-            //     fname,
-            //     lname,
-            //     email,
-            //     password,
-            //     contact,
-            //     interest: [],
-            //     termAndConditionAccepted,
-            //     dateJoin
-            // })
-            res.status(200);
-            res.send({
-                message: "Document inserted"
-            })
+                res.status(200);
+                res.send({
+                    data: {
+                        _id: user_id,
+                        username,
+                        email,
+                        contact,
+                        ownCar: [],
+                        favorite: [],
+                        status: 2,
+                        dateJoin
+                    },
+                    auth: true,
+                    message: "User successful registered"
+                })
+            } else {
+                res.status(406);
+                res.send({
+                    data: {},
+                    auth: false,
+                    message: "Unauthorized access detected"
+                });
+            }
+
         }
         catch (e) {
             res.status(500);
             res.send({
-                message: "Unable to insert document"
+                message: "Error accessing the database"
             })
             console.log(e)
         }
