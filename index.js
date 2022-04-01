@@ -109,12 +109,17 @@ async function main() {
                     if (username == userData.username && password == passwordDatabase) {
                         // remove password and detail not needed
                         delete userData["password"];
+                        console.log(userData.ownCar)
                         if (userData.ownCar) {
-                            carData = await CAR_INFO.find( { 'user_id': ObjectId(user._id) } ).toArray();
+                            carData = await CAR_INFO.find(
+                                { 'user_id': ObjectId(userData._id) } 
+                            ).toArray();
                         }
+                        console.log(carData)
                         // insert carData into userData  
                         userData.carData = carData;
-
+                        // console.log (userData)
+                        
                         res.status(200);
                         res.send({
                             userData,    
@@ -177,8 +182,8 @@ async function main() {
             let contact = req.body.contact || "";
             let password = req.body.password || "";
             let passwordConfirm = req.body.passwordConfirm || "";
-            let ownCar = req.body.ownCar || "";
-            let carPlate = req.body.carPlate || false;
+            let ownCar = req.body.ownCar || false;
+            let carPlate = req.body.carPlate || "";
             let ownerId = req.body.ownerId || "";
             let ownerIdType = req.body.ownerIdType || "";
             ownerIdType = ownerIdType.toString();
@@ -208,6 +213,7 @@ async function main() {
                     username,
                     email,
                     password,
+                    ownCar,
                     contact,
                     favorite:[],
                     dateJoin
@@ -220,7 +226,7 @@ async function main() {
                     
                     // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
                     let res1 = await CAR_INFO.insertOne({
-                        user_id: response.insertedId,
+                        user_id: user._id,
                         carPlate,
                         dateInserted: dateJoin
                     });
