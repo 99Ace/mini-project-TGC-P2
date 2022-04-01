@@ -83,62 +83,51 @@ async function main() {
             let password = req.params.password || "";
             let data = {}
 
-            console.log("=========A U T H - L O G I N===========")
-            console.log(username, password)
-            console.log("Special Char exist", Functions.hasSpecialCharacters(username))
-            console.log("UserLength", username.length < 6)
-            console.log("PasswordLength", password.length < 6)
-
-            // Validation to check if it is unauthorized access
-            if (Functions.hasSpecialCharacters(username) ||
-                username.length < 6 ||
-                password.length < 6) {
-
-                console.log("Validation fail")
-                res.status(406);
-                res.send({
-                    data: {},
-                    auth: false,
-                    message: "Unauthorised Access"
-                })
-            }
-            else {
+            let validationCheck = [];
+            validationCheck.push(
+                Functions.validateUser(username),
+                password.length >5
+            )
+            if (!validationCheck.includes(false)) {
                 // find and download the data from database
-                let response = await CAR_OWNER.find(
+                let userData = await CAR_OWNER.find(
                     { 'username': username }
                 ).toArray();
-
-                if (response.length == 0) {
+                let carData = []
+                if (userData.length == 0) {
+                    
                     res.status(200);
                     res.send({
-                        data: {},
                         auth: false,
-                        message: "Invalid user/password"
+                        message: "Invalid Username/Password"
                     });
                 } else {
-                    data = response[0];
-                    let passwordDatabase = cryptr.decrypt(data.password); // decrypt the password
+                    userData = userData[0];
+                    let passwordDatabase = cryptr.decrypt(userData.password); // decrypt the password
 
                     // check if username and password is correct
-                    if (username == data.username && password == passwordDatabase) {
+                    if (username == userData.username && password == passwordDatabase) {
                         // remove password and detail not needed
-                        delete data["password"];
-                        delete data["termAndConditionAccepted"];
+                        delete userData["password"];
+                        if (userData.ownCar) {
+                            carData = await CAR_INFO.find( { 'user_id': ObjectId(user._id) } ).toArray();
+                        }
+                        // insert carData into userData  
+                        userData.carData = carData;
 
                         res.status(200);
                         res.send({
-                            data: data,
+                            userData,    
                             auth: true,
-                            message: "login is successful"
+                            message: "Login Successful"
                         });
                         console.log('Login successful, data sent');
                     }
                     else {
                         res.status(200);
                         res.send({
-                            data: {},
                             auth: false,
-                            message: "Invalid user/password"
+                            message: "Invalid Username/Password"
                         });
                         console.log('Invalid user/password');
                     }
@@ -149,7 +138,6 @@ async function main() {
         catch (e) {
             res.status(500);
             res.send({
-                data: {},
                 auth: false,
                 message: "Error accessing the database"
             })
@@ -194,8 +182,8 @@ async function main() {
             let ownerId = req.body.ownerId || "";
             let ownerIdType = req.body.ownerIdType || "";
             ownerIdType = ownerIdType.toString();
-            console.log(username)
-            // Validation
+            console.log(req.body)
+            // VALIDATION
             let validationCheck = [];
             validationCheck.push(
                 Functions.validateUser(username),
@@ -203,6 +191,7 @@ async function main() {
                 Functions.validateContact(contact),
                 Functions.validatePassword(password, passwordConfirm)
             );
+            // Conduct validation check for car details if car is submitted
             if (ownCar) {
                 validationCheck.push(
                     Functions.validateCarPlate(carPlate),
@@ -210,44 +199,49 @@ async function main() {
                     Functions.validateOwnerIdType(ownerIdType)
                 )
             }
-
-            console.log(ownerIdType, Functions.validateOwnerIdType(ownerIdType))
-            console.log(validationCheck);
+            
+            // If pass Validation : insert into DB
             if (!validationCheck.includes(false)) {
                 let dateJoin = Functions.currentDate();
                 password = cryptr.encrypt(password)
-                let response = await CAR_OWNER.insertOne({
+                let userData = {
                     username,
                     email,
                     password,
                     contact,
-                    ownCar: [],
-                    favorite: [],
+                    favorite:[],
                     dateJoin
-                })
-                console.log(response)
-                let user_id = response.insertedId;
-                
+                }
+                let carData =[]
+                let res1 = await CAR_OWNER.insertOne( userData );
+                // console.log("insert car owner", response);
+                let user = { '_id': res1.insertedId };
+                if (ownCar) {
+                    
+                    // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
+                    let res1 = await CAR_INFO.insertOne({
+                        user_id: response.insertedId,
+                        carPlate,
+                        dateInserted: dateJoin
+                    });
+                    // console.log("insert car details",res1)
 
+                    // find from database and send both data back
+                    userData = await CAR_OWNER.findOne( { '_id': ObjectId(user._id) } )
+                    carData = await CAR_INFO.find( { 'user_id': ObjectId(user._id) } ).toArray()
+                }
+                userData.carData = carData;
                 res.status(200);
                 res.send({
-                    data: {
-                        _id: user_id,
-                        username,
-                        email,
-                        contact,
-                        ownCar: [],
-                        favorite: [],
-                        status: 2,
-                        dateJoin
-                    },
+                    userData,
                     auth: true,
                     message: "User successful registered"
                 })
-            } else {
+            }
+            // Failed Validation : Suspected not from our website 
+            else {
                 res.status(406);
                 res.send({
-                    data: {},
                     auth: false,
                     message: "Unauthorized access detected"
                 });
@@ -257,6 +251,7 @@ async function main() {
         catch (e) {
             res.status(500);
             res.send({
+                auth:false,
                 message: "Error accessing the database"
             })
             console.log(e)
