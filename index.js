@@ -77,32 +77,32 @@ async function main() {
     // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful
     app.get('/user/:username/:password/login', async (req, res) => {
         console.log("=======LOGIN AUTH ROUTE========")
+        let message=[];
         try {
             // download the data from entry
             let username = req.params.username || "";
             let password = req.params.password || "";
-            let data = {}
 
             let validationCheck = [];
             validationCheck.push(
-                Functions.validateUser(username),
+                Functions.validateUser(username) &&
                 password.length > 5
-            )
+            );
             if (!validationCheck.includes(false)) {
                 // find and download the data from database
-                let userData = await CAR_OWNER.find(
+                let userData = await CAR_OWNER.findOne(
                     { 'username': username }
-                ).toArray();
-                let carData = []
-                if (userData.length == 0) {
-
-                    res.status(200);
+                );
+                let carData = [];
+                console.log(userData)
+                if (userData == null) {
+                    message.push("Invalid Username/Password");
+                    res.status(406);
                     res.send({
                         auth: false,
-                        message: "Invalid Username/Password"
+                        message
                     });
                 } else {
-                    userData = userData[0];
                     let passwordDatabase = cryptr.decrypt(userData.password); // decrypt the password
 
                     // check if username and password is correct
@@ -120,19 +120,21 @@ async function main() {
                         userData.carData = carData;
                         // console.log (userData)
 
+                        message.push(`Welcome back, ${userData.username} !`)
                         res.status(200);
                         res.send({
                             userData,
                             auth: true,
-                            message: "Login Successful"
+                            message
                         });
                         console.log('Login successful, data sent');
                     }
                     else {
+                        message.push("Invalid Username/Password");
                         res.status(200);
                         res.send({
                             auth: false,
-                            message: "Invalid Username/Password"
+                            message
                         });
                         console.log('Invalid user/password');
                     }
@@ -140,41 +142,55 @@ async function main() {
             }
         }
         catch (e) {
+            message.push("Error accessing the database");
             res.status(500);
             res.send({
                 auth: false,
-                message: "Error accessing the database"
+                message
             })
         }
     })
     // PROFILE PATH : VIEW USER PROFILE 
-    app.get('/user/:userId/profile', async (req, res) => {
+    app.get('/user/:username/profile', async (req, res) => {
+        let message=[];
         try {
-            let user = await CAR_OWNER.find(
-                { '_id': ObjectId(req.params.userId) }
-            ).toArray();
-            let ownedCars = await CAR_INFO.find(
-                { 'userId': ObjectId(req.params.userId) }
-            ).toArray();
+            // Find the user
+            let userData = await CAR_OWNER.findOne(
+                { username : req.params.username }
+            );
+            // console.log(userData ,req.params.username)
+            if (userData.ownCar) {
+                carData = await CAR_INFO.find(
+                    { 'user_id': ObjectId(userData._id) }
+                ).toArray();
+            }
+            // insert carData into userData  
+            userData.carData = carData;
+            console.log (userData)
 
-            user = user[0];
-            user.ownedCars = [...ownedCars]
-            console.log(user, ownedCars);
-            res.send(user)
+            message.push(`Welcome back, ${userData.username} !`)
+            res.status(200);
+            res.send({
+                userData,
+                auth: true,
+                message
+            });
+            console.log(message)
         }
         catch (e) {
+            message.push("Unauthorized access detected")
             res.status(500);
             res.send({
-                message: "User not found"
+                auth: false,
+                message
             })
             console.log(e)
         }
-
     })
     // REGISTER PATH : CREATE A NEW USER
     app.post('/user/register', async (req, res) => {
         console.log("======= REGISTER ROUTE ========")
-
+        let message = []
         try {
             let username = req.body.username || "";
             let email = req.body.email || "";
@@ -190,7 +206,6 @@ async function main() {
 
             // VALIDATION IF DATA Ok IN DB
             let validationCheck = [];
-            let message = [];
             let errMessage = [
                 `${username} already exist in record`,
                 `${email} already exist in record`,
@@ -252,7 +267,7 @@ async function main() {
                 res.status(406);
                 res.send({
                     auth: false,
-                    message: message
+                    message
                 });
             } else {
                 // RESET validationCheck
@@ -264,7 +279,7 @@ async function main() {
                     Functions.validateContact(contact),
                     Functions.validatePassword(password, passwordConfirm)
                 );
-                // Conduct validation check for car details if car is submitted
+                // VALIDATE CAR details if car is submitted
                 if (ownCar) {
                     validationCheck.push(
                         Functions.validateCarPlate(carPlate),
@@ -276,6 +291,7 @@ async function main() {
                 if (!validationCheck.includes(false)) {
                     let dateJoin = Functions.currentDate();
                     password = cryptr.encrypt(password)
+                    // ORGANISE THE DATA
                     let userData = {
                         username,
                         email,
@@ -290,7 +306,6 @@ async function main() {
                     // console.log("insert car owner", response);
                     let user = { '_id': res1.insertedId };
                     if (ownCar) {
-
                         // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
                         let res1 = await CAR_INFO.insertOne({
                             user_id: user._id,
@@ -304,29 +319,33 @@ async function main() {
                         carData = await CAR_INFO.find({ 'user_id': ObjectId(user._id) }).toArray()
                     }
                     userData.carData = carData;
+                    message.push("Welcome to MikarWorld, User is successful registered")
                     res.status(200);
                     res.send({
                         userData,
-                        auth: true,
-                        message: "User successful registered"
+                        auth:true,
+                        message
                     })
+                    console.log(message)
                 }
                 // Failed Validation : Suspected not from our website 
                 else {
+                    message.push("Unauthorized access detected")
                     res.status(406);
                     res.send({
                         auth: false,
-                        message: "Unauthorized access detected"
+                        message
                     });
                 }
             }
 
         }
         catch (e) {
+            message.push("Error accessing the database")
             res.status(500);
             res.send({
                 auth: false,
-                message: "Error accessing the database"
+                message
             })
             console.log(e)
         }
