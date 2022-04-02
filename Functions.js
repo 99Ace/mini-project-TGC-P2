@@ -17,8 +17,12 @@ function calculateDepreciation(info) {
 }
 
 // ===================== VERIFICATION =====================
+checkMatchCount = (e) => {
+    console.log("E is =>",e)
+    return e === undefined ? true : false;
+}
 // validate username : no specialChar, length 6-15
-validateUser = (elementValue)=> {
+validateUser = (elementValue) => {
     let userPattern = /^[a-zA-Z0-9]{6,15}$/;
     return userPattern.test(elementValue)
 }
@@ -34,13 +38,13 @@ validateContact = (elementValue) => {
 }
 // validate password: both password matches, both length 6 and above
 validatePassword = (pass1, pass2) => {
-    if (pass1.length>5 && pass2.length>5) {
-        return pass1==pass2
+    if (pass1.length > 5 && pass2.length > 5) {
+        return pass1 == pass2
     }
     else {
         return false
     }
-    
+
 }
 // validate car plate : 3char4digit1char format
 validateCarPlate = (elementValue) => {
@@ -59,8 +63,9 @@ validateOwnerIdType = (elementValue) => {
 
 
 module.exports = {
-    validateUser, validateEmail, validateContact, validatePassword, 
+    checkMatchCount,
+    validateUser, validateEmail, validateContact, validatePassword,
     validateCarPlate, validateOwnerId, validateOwnerIdType,
     currentDate,
-    calculateDepreciation
+    calculateDepreciation,
 }

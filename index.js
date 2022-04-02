@@ -86,7 +86,7 @@ async function main() {
             let validationCheck = [];
             validationCheck.push(
                 Functions.validateUser(username),
-                password.length >5
+                password.length > 5
             )
             if (!validationCheck.includes(false)) {
                 // find and download the data from database
@@ -95,7 +95,7 @@ async function main() {
                 ).toArray();
                 let carData = []
                 if (userData.length == 0) {
-                    
+
                     res.status(200);
                     res.send({
                         auth: false,
@@ -112,17 +112,17 @@ async function main() {
                         console.log(userData.ownCar)
                         if (userData.ownCar) {
                             carData = await CAR_INFO.find(
-                                { 'user_id': ObjectId(userData._id) } 
+                                { 'user_id': ObjectId(userData._id) }
                             ).toArray();
                         }
                         console.log(carData)
                         // insert carData into userData  
                         userData.carData = carData;
                         // console.log (userData)
-                        
+
                         res.status(200);
                         res.send({
-                            userData,    
+                            userData,
                             auth: true,
                             message: "Login Successful"
                         });
@@ -136,7 +136,6 @@ async function main() {
                         });
                         console.log('Invalid user/password');
                     }
-
                 }
             }
         }
@@ -187,77 +186,146 @@ async function main() {
             let ownerId = req.body.ownerId || "";
             let ownerIdType = req.body.ownerIdType || "";
             ownerIdType = ownerIdType.toString();
-            console.log(req.body)
-            // VALIDATION
-            let validationCheck = [];
-            validationCheck.push(
-                Functions.validateUser(username),
-                Functions.validateEmail(email),
-                Functions.validateContact(contact),
-                Functions.validatePassword(password, passwordConfirm)
-            );
-            // Conduct validation check for car details if car is submitted
-            if (ownCar) {
-                validationCheck.push(
-                    Functions.validateCarPlate(carPlate),
-                    Functions.validateOwnerId(ownerId),
-                    Functions.validateOwnerIdType(ownerIdType)
-                )
-            }
-            
-            // If pass Validation : insert into DB
-            if (!validationCheck.includes(false)) {
-                let dateJoin = Functions.currentDate();
-                password = cryptr.encrypt(password)
-                let userData = {
-                    username,
-                    email,
-                    password,
-                    ownCar,
-                    contact,
-                    favorite:[],
-                    dateJoin
-                }
-                let carData =[]
-                let res1 = await CAR_OWNER.insertOne( userData );
-                // console.log("insert car owner", response);
-                let user = { '_id': res1.insertedId };
-                if (ownCar) {
-                    
-                    // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
-                    let res1 = await CAR_INFO.insertOne({
-                        user_id: user._id,
-                        carPlate,
-                        dateInserted: dateJoin
-                    });
-                    // console.log("insert car details",res1)
+            console.log(req.body);
 
-                    // find from database and send both data back
-                    userData = await CAR_OWNER.findOne( { '_id': ObjectId(user._id) } )
-                    carData = await CAR_INFO.find( { 'user_id': ObjectId(user._id) } ).toArray()
-                }
-                userData.carData = carData;
-                res.status(200);
-                res.send({
-                    userData,
-                    auth: true,
-                    message: "User successful registered"
-                })
-            }
-            // Failed Validation : Suspected not from our website 
-            else {
+            // VALIDATION IF DATA Ok IN DB
+            let validationCheck = [];
+            let message = [];
+            let errMessage = [
+                `${username} already exist in record`,
+                `${email} already exist in record`,
+                `${contact} already exist in record`,
+                `${carPlate} already exist in record`,
+            ];
+            // set up data verification in mongodb
+            let res1 = CAR_OWNER.aggregate([
+                { $match: { username: req.body.username } },
+                {
+                    $group: {
+                        _id: null,
+                        count: { $sum: 1 }
+                    }
+                }]).toArray();
+            let res2 = CAR_OWNER.aggregate([
+                { $match: { email: req.body.email } },
+                {
+                    $group: {
+                        _id: null,
+                        count: { $sum: 1 }
+                    }
+                }]).toArray();
+            let res3 = CAR_OWNER.aggregate([
+                { $match: { contact: req.body.contact } },
+                {
+                    $group: {
+                        _id: null,
+                        count: { $sum: 1 }
+                    }
+                }]).toArray();
+            let res4 = CAR_INFO.aggregate([
+                { $match: { carPlate: req.body.carPlate } },
+                {
+                    $group: {
+                        _id: null,
+                        count: { $sum: 1 }
+                    }
+                }]).toArray();
+
+            // load in the count result
+            let [checkUsernameOk] = await res1;
+            let [checkEmailOk] = await res2;
+            let [checkContactOk] = await res3;
+            ownCar ? [checkCarPlateOk] = await res4 : null;
+
+            validationCheck.push(Functions.checkMatchCount(checkUsernameOk));
+            validationCheck.push(Functions.checkMatchCount(checkEmailOk));
+            validationCheck.push(Functions.checkMatchCount(checkContactOk));
+            ownCar ? validationCheck.push(Functions.checkMatchCount(checkCarPlateOk)) : null;
+
+            console.log("First round check", validationCheck);
+            validationCheck.filter((e, index) => {
+                !e ? message.push(errMessage[index]) : null;
+            })
+            // FIRST ROUND VALIDATION
+            if (validationCheck.includes(false)) {
+                console.log(message)
                 res.status(406);
                 res.send({
                     auth: false,
-                    message: "Unauthorized access detected"
+                    message: message
                 });
+            } else {
+                // RESET validationCheck
+                validationCheck = [];
+                // VALIDATION OF ENTRY
+                validationCheck.push(
+                    Functions.validateUser(username),
+                    Functions.validateEmail(email),
+                    Functions.validateContact(contact),
+                    Functions.validatePassword(password, passwordConfirm)
+                );
+                // Conduct validation check for car details if car is submitted
+                if (ownCar) {
+                    validationCheck.push(
+                        Functions.validateCarPlate(carPlate),
+                        Functions.validateOwnerId(ownerId),
+                        Functions.validateOwnerIdType(ownerIdType)
+                    )
+                }
+                // If pass Validation : insert into DB
+                if (!validationCheck.includes(false)) {
+                    let dateJoin = Functions.currentDate();
+                    password = cryptr.encrypt(password)
+                    let userData = {
+                        username,
+                        email,
+                        password,
+                        ownCar,
+                        contact,
+                        favorite: [],
+                        dateJoin
+                    }
+                    let carData = []
+                    let res1 = await CAR_OWNER.insertOne(userData);
+                    // console.log("insert car owner", response);
+                    let user = { '_id': res1.insertedId };
+                    if (ownCar) {
+
+                        // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
+                        let res1 = await CAR_INFO.insertOne({
+                            user_id: user._id,
+                            carPlate,
+                            dateInserted: dateJoin
+                        });
+                        // console.log("insert car details",res1)
+
+                        // find from database and send both data back
+                        userData = await CAR_OWNER.findOne({ '_id': ObjectId(user._id) })
+                        carData = await CAR_INFO.find({ 'user_id': ObjectId(user._id) }).toArray()
+                    }
+                    userData.carData = carData;
+                    res.status(200);
+                    res.send({
+                        userData,
+                        auth: true,
+                        message: "User successful registered"
+                    })
+                }
+                // Failed Validation : Suspected not from our website 
+                else {
+                    res.status(406);
+                    res.send({
+                        auth: false,
+                        message: "Unauthorized access detected"
+                    });
+                }
             }
 
         }
         catch (e) {
             res.status(500);
             res.send({
-                auth:false,
+                auth: false,
                 message: "Error accessing the database"
             })
             console.log(e)
@@ -585,7 +653,12 @@ async function main() {
 
     })
     // ==========================================================
-    app.get('/', async (req, res) => {
+    app.post('/', async (req, res) => {
+        let message = []
+
+
+
+
         res.send("Done")
     })
 
