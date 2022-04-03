@@ -24,6 +24,7 @@ const cryptr = new Cryptr('myTotalySecretKey');
 // Set up dotenv
 require('dotenv').config();
 
+
 async function main() {
     // ==========================================================
     // 1A. SETUP EXPRESS application
@@ -52,6 +53,82 @@ async function main() {
     let CAR_INFO = db.collection(process.env.COLLECTION_CAR);
     let CAR_OWNER = db.collection(process.env.COLLECTION_OWNER);
     let CAR_REFERENCE = db.collection(process.env.COLLECTION_REFERENCE);
+
+    // FUNCTIONS
+    async function aceValidate(
+        userData,
+        username,
+        email,
+        contact,
+        carPlate) {
+
+        // VALIDATION IF DATA Ok IN DB
+        let validationCheck = [];
+        let message = [];
+        let errMessage = [
+            `${username} already exist in record`,
+            `${email} already exist in record`,
+            `${contact} already exist in record`,
+            `${carPlate} already exist in record`,
+        ];
+        console.log(
+            username, email, contact
+        )
+        // set up data verification in mongodb
+        let res1 = CAR_OWNER.aggregate([
+            { $match: { username: username } },
+            {
+                $group: {
+                    _id: null,
+                    count: { $sum: 1 }
+                }
+            }]).toArray();
+        let res2 = CAR_OWNER.aggregate([
+            { $match: { email: email } },
+            {
+                $group: {
+                    _id: null,
+                    count: { $sum: 1 }
+                }
+            }]).toArray();
+        let res3 = CAR_OWNER.aggregate([
+            { $match: { contact: contact } },
+            {
+                $group: {
+                    _id: null,
+                    count: { $sum: 1 }
+                }
+            }]).toArray();
+        let res4 = CAR_INFO.aggregate([
+            { $match: { carPlate: carPlate } },
+            {
+                $group: {
+                    _id: null,
+                    count: { $sum: 1 }
+                }
+            }]).toArray();
+
+        // load in the count result
+        let [checkUsernameOk] = await res1;
+        let [checkEmailOk] = await res2;
+        let [checkContactOk] = await res3;
+        // ownCar ? [checkCarPlateOk] = await res4 : null;
+        console.log(checkContactOk, checkEmailOk, checkUsernameOk)
+
+        validationCheck.push(Functions.checkMatchCount(checkUsernameOk));
+        validationCheck.push(Functions.checkMatchCount(checkEmailOk));
+        validationCheck.push(Functions.checkMatchCount(checkContactOk));
+        // ownCar ? validationCheck.push(Functions.checkMatchCount(checkCarPlateOk)) : null;
+
+        console.log("First round check", validationCheck);
+        validationCheck.filter((e, index) => {
+            !e ? message.push(errMessage[index]) : null;
+        });
+        return {
+            validationCheck,
+            message
+        }
+    }
 
     // ==========================================================
     // ===================== R O U T E S ========================
@@ -310,6 +387,7 @@ async function main() {
                         let res1 = await CAR_INFO.insertOne({
                             user_id: user._id,
                             carPlate,
+                            availability:false,
                             dateInserted: dateJoin
                         });
                         // console.log("insert car details",res1)
@@ -367,9 +445,8 @@ async function main() {
             let [userData] = await CAR_OWNER.find(
                 { '_id': ObjectId(userId) }
             ).toArray()
-            // user = user[0];
-            console.log(userData);
 
+            console.log("====LOCAL CHECK====")
             // VALIDATION IF DATA Ok IN DB
             let validationCheck = [];
             let errMessage = [
@@ -378,6 +455,7 @@ async function main() {
                 `${contact} already exist in record`,
             ];
             // VERIFYING IF USER EXIST IN DB
+            // if is current username is sent in, will pass as true
             if (username !== "" && username !== userData.username) {
                 let res1 = CAR_OWNER.aggregate([
                     { $match: { username: req.body.username } },
@@ -392,22 +470,23 @@ async function main() {
             } else {
                 validationCheck.push(true);
             }
-
+            // VERIFYING IF EMAIL EXIST IN DB
             if (email !== "" && email !== userData.email) {
                 let res2 = CAR_OWNER.aggregate([
-                    { $match: { email: req.body.email } },
+                    { $match: { email: email } },
                     {
                         $group: {
                             _id: null,
                             count: { $sum: 1 }
                         }
                     }]).toArray();
+                    console.log("email==>", await res2)
                 let [checkEmailOk] = await res2;
                 validationCheck.push(Functions.checkMatchCount(checkEmailOk));
             } else {
                 validationCheck.push(true);
             }
-
+            // VERIFYING IF CONTACT EXIST IN DB
             if (contact !== "" && contact !== userData.contact) {
                 let res3 = CAR_OWNER.aggregate([
                     { $match: { contact: req.body.contact } },
@@ -423,38 +502,77 @@ async function main() {
                 validationCheck.push(true);
             }
 
-            console.log(validationCheck)
-
-            //  
-            // let updateData = {
-            //     "_id": ObjectId(userId),
-            //     username,
-            //     fname,
-            //     lname,
-            //     email,
-            //     contact,
-            //     password: user.password,
-            //     interest: user.interest,
-            //     termAndConditionAccepted: true,
-            //     dateJoin: user.dateJoin
-            // }
-            // console.log(updateData)
-
-
-            // Update the user data
-            // await CAR_OWNER.updateOne(
-            //     {
-            //         _id: ObjectId(userId)
-            //     },
-            //     {
-            //         "$set": updateData
-            //     });
-
-            res.status(200);
-            res.send({
-                "message": "User profile is updated"
+            console.log("First round check", validationCheck);
+            validationCheck.filter((e, index) => {
+                !e ? message.push(errMessage[index]) : null;
             })
-        } catch (e) {
+            console.log(message)
+
+            // FIRST ROUND VALIDATION
+            if (validationCheck.includes(false)) {
+                console.log(message)
+                res.status(406);
+                res.send({
+                    auth: false,
+                    message
+                });
+            } 
+            else {
+                // RESET validationCheck
+                validationCheck = [];
+                // VALIDATION OF ENTRY
+                validationCheck.push(
+                    Functions.validateUser(username),
+                    Functions.validateEmail(email),
+                    Functions.validateContact(contact),
+                );
+                // If pass Validation : insert into DB
+                if (!validationCheck.includes(false)) {
+                    // ORGANISE THE DATA
+                    let newUserData = {
+                        _id : ObjectId(userId),
+                        username,
+                        email,
+                        password:userId.password,
+                        ownCar:userId.ownCar,
+                        contact,
+                        favorite:userId.favorite,
+                        dateJoin:userId.dateJoin,
+                        first_name,
+                        last_name
+                    };
+
+                    await CAR_OWNER.updateOne(
+                        {
+                            _id: ObjectId(userId)
+                        },
+                        {
+                            "$set": newUserData
+                        }
+                    );
+                    // console.log("insert car owner", response);
+
+                    message.push("Profile is updated")
+                    res.status(200);
+                    res.send({
+                        newUserData,
+                        auth: true,
+                        message
+                    })
+                    console.log(message)
+                }
+                // Failed Validation : Suspected not from our website 
+                else {
+                    message.push("Unauthorized access detected")
+                    res.status(406);
+                    res.send({
+                        auth: false,
+                        message
+                    });
+                }
+            }
+        } 
+        catch (e) {
             message.push("Unable to update User")
             res.status(500);
             res.send({
@@ -464,6 +582,7 @@ async function main() {
             console.log(e);
         }
     })
+
     // DELETE PATH : DELETE USER
     app.delete('/user/:userId', async (req, res) => {
         console.log("===== DELETE USER ======")

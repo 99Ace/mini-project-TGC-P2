@@ -19,11 +19,10 @@ path = (URL +"/user/:username/:password/login")
 path= (URL + "/user/:username/profile")
 // PUT : UPDATE PROFILE
 path = (URL + "/user/update")
-bodayData = {
+bodyData = {
     "_id": "6247a857ccaf24188b2fe3c3",
     "username": "Natalie",
     "email": "natalie@gmail.co",
-    "ownCar": true,
     "contact": "91223322",
     "first_name" : "Natalie",
     "last_name" : "Portman"
