@@ -77,7 +77,7 @@ async function main() {
     // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful
     app.get('/user/:username/:password/login', async (req, res) => {
         console.log("=======LOGIN AUTH ROUTE========")
-        let message=[];
+        let message = [];
         try {
             // download the data from entry
             let username = req.params.username || "";
@@ -152,11 +152,11 @@ async function main() {
     })
     // PROFILE PATH : VIEW USER PROFILE 
     app.get('/user/:username/profile', async (req, res) => {
-        let message=[];
+        let message = [];
         try {
             // Find the user
             let userData = await CAR_OWNER.findOne(
-                { username : req.params.username }
+                { username: req.params.username }
             );
             // console.log(userData ,req.params.username)
             if (userData.ownCar) {
@@ -166,7 +166,7 @@ async function main() {
             }
             // insert carData into userData  
             userData.carData = carData;
-            console.log (userData)
+            console.log(userData)
 
             message.push(`Welcome back, ${userData.username} !`)
             res.status(200);
@@ -323,7 +323,7 @@ async function main() {
                     res.status(200);
                     res.send({
                         userData,
-                        auth:true,
+                        auth: true,
                         message
                     })
                     console.log(message)
@@ -352,56 +352,114 @@ async function main() {
     })
     // UPDATE PATH : EDIT USER PROFILE
     app.put('/user/update', async (req, res) => {
-        console.log("===== EDIT USER ======")
+        console.log("======= UPDATE PROFILE ROUTE ========")
+        let message = []
         try {
-            let {
-                userId,
-                username,
-                fname,
-                lname,
-                email,
-                contact,
-            } = req.body;
+            let userId = req.body.user_id || " ";
+            let username = req.body.username || "";
+            let email = req.body.email || "";
+            let contact = req.body.contact || "";
+            let first_name = req.body.first_name || "";
+            let last_name = req.body.last_name || "";
 
-            let user = await CAR_OWNER.find(
+            console.log(req.body.user_id);
+
+            let [userData] = await CAR_OWNER.find(
                 { '_id': ObjectId(userId) }
-            ).toArray();
-            user = user[0];
-            console.log(user);
+            ).toArray()
+            // user = user[0];
+            console.log(userData);
 
-            let updateData = {
-                "_id": ObjectId(userId),
-                username,
-                fname,
-                lname,
-                email,
-                contact,
-                password: user.password,
-                interest: user.interest,
-                termAndConditionAccepted: true,
-                dateJoin: user.dateJoin
+            // VALIDATION IF DATA Ok IN DB
+            let validationCheck = [];
+            let errMessage = [
+                `${username} already exist in record`,
+                `${email} already exist in record`,
+                `${contact} already exist in record`,
+            ];
+            // VERIFYING IF USER EXIST IN DB
+            if (username !== "" && username !== userData.username) {
+                let res1 = CAR_OWNER.aggregate([
+                    { $match: { username: req.body.username } },
+                    {
+                        $group: {
+                            _id: null,
+                            count: { $sum: 1 }
+                        }
+                    }]).toArray();
+                let [checkUsernameOk] = await res1;
+                validationCheck.push(Functions.checkMatchCount(checkUsernameOk));
+            } else {
+                validationCheck.push(true);
             }
-            console.log(updateData)
+
+            if (email !== "" && email !== userData.email) {
+                let res2 = CAR_OWNER.aggregate([
+                    { $match: { email: req.body.email } },
+                    {
+                        $group: {
+                            _id: null,
+                            count: { $sum: 1 }
+                        }
+                    }]).toArray();
+                let [checkEmailOk] = await res2;
+                validationCheck.push(Functions.checkMatchCount(checkEmailOk));
+            } else {
+                validationCheck.push(true);
+            }
+
+            if (contact !== "" && contact !== userData.contact) {
+                let res3 = CAR_OWNER.aggregate([
+                    { $match: { contact: req.body.contact } },
+                    {
+                        $group: {
+                            _id: null,
+                            count: { $sum: 1 }
+                        }
+                    }]).toArray();
+                let [checkContactOk] = await res3;
+                validationCheck.push(Functions.checkMatchCount(checkContactOk));
+            } else {
+                validationCheck.push(true);
+            }
+
+            console.log(validationCheck)
+
+            //  
+            // let updateData = {
+            //     "_id": ObjectId(userId),
+            //     username,
+            //     fname,
+            //     lname,
+            //     email,
+            //     contact,
+            //     password: user.password,
+            //     interest: user.interest,
+            //     termAndConditionAccepted: true,
+            //     dateJoin: user.dateJoin
+            // }
+            // console.log(updateData)
 
 
             // Update the user data
-            await CAR_OWNER.updateOne(
-                {
-                    _id: ObjectId(userId)
-                },
-                {
-                    "$set": updateData
-                });
+            // await CAR_OWNER.updateOne(
+            //     {
+            //         _id: ObjectId(userId)
+            //     },
+            //     {
+            //         "$set": updateData
+            //     });
 
             res.status(200);
             res.send({
                 "message": "User profile is updated"
             })
         } catch (e) {
+            message.push("Unable to update User")
             res.status(500);
             res.send({
-                'message': "Unable to update User",
-                "error": e
+                auth: false,
+                message,
             })
             console.log(e);
         }
@@ -673,10 +731,7 @@ async function main() {
     })
     // ==========================================================
     app.post('/', async (req, res) => {
-        let message = []
-
-
-
+        let message = [];
 
         res.send("Done")
     })
