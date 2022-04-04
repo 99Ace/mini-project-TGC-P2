@@ -5,6 +5,7 @@ bodyData = {
     "username": "",
     "email": "",
     "password": "",
+    "passwordConfirm": "",
     "contact": "",
     "ownCar": "",
      // optional
@@ -26,4 +27,21 @@ bodyData = {
     "contact": "91223322",
     "first_name" : "Natalie",
     "last_name" : "Portman"
+}
+path = (URL + "/user/add_car")
+bodyData = {
+    carPlate : "SDL1D"
+}
+
+
+{
+    "username": "Henry001",
+    "email": "henry001@gmail.com",
+    "password": "secret",
+    "passwordConfirm": "secret",
+    "contact": "80000001",
+    "ownCar": "true",
+    "carPlate": "SDL1D",
+    "ownerId": "001D",
+    "ownerIdType": "0"
 }

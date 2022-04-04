@@ -192,10 +192,7 @@ async function main() {
                                 { 'user_id': ObjectId(userData._id) }
                             ).toArray();
                         }
-                        console.log(carData)
-                        // insert carData into userData  
-                        userData.carData = carData;
-                        // console.log (userData)
+                        userData.cars = carData;
 
                         message.push(`Welcome back, ${userData.username} !`)
                         res.status(200);
@@ -242,8 +239,9 @@ async function main() {
                 ).toArray();
             }
             // insert carData into userData  
-            userData.carData = carData;
-            console.log(userData)
+            userData.cars = carData;
+            // remove password and detail not needed
+            delete userData["password"]
 
             message.push(`Welcome back, ${userData.username} !`)
             res.status(200);
@@ -384,19 +382,38 @@ async function main() {
                     let user = { '_id': res1.insertedId };
                     if (ownCar) {
                         // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
-                        let res1 = await CAR_INFO.insertOne({
+                        let res2 = await CAR_INFO.insertOne({
                             user_id: user._id,
                             carPlate,
-                            availability:false,
+                            currentOwnerId: ownerId,
+                            currentOwnerIdType: ownerIdType,
+                            availability: false,
                             dateInserted: dateJoin
                         });
-                        // console.log("insert car details",res1)
+                        let car = { '_id': res2.insertedId };
+                        await CAR_OWNER.update(
+                            { _id: ObjectId(user._id) },
+                            {
+                                $set: {
+                                    cars: [
+                                        {
+                                            car_id: ObjectId(car._id),
+                                            carPlate,
+                                        }
+                                    ]
+                                }
+                            }
+                        )
+                        console.log("insert car details", res1)
 
                         // find from database and send both data back
                         userData = await CAR_OWNER.findOne({ '_id': ObjectId(user._id) })
-                        carData = await CAR_INFO.find({ 'user_id': ObjectId(user._id) }).toArray()
+                        carData = await CAR_INFO.find({ 'user_id': ObjectId(user._id) }).toArray();
                     }
-                    userData.carData = carData;
+                    userData.cars = carData;
+                    // remove password and detail not needed
+                    delete userData["password"]
+
                     message.push("Welcome to MikarWorld, User is successful registered")
                     res.status(200);
                     res.send({
@@ -480,7 +497,7 @@ async function main() {
                             count: { $sum: 1 }
                         }
                     }]).toArray();
-                    console.log("email==>", await res2)
+                console.log("email==>", await res2)
                 let [checkEmailOk] = await res2;
                 validationCheck.push(Functions.checkMatchCount(checkEmailOk));
             } else {
@@ -516,7 +533,7 @@ async function main() {
                     auth: false,
                     message
                 });
-            } 
+            }
             else {
                 // RESET validationCheck
                 validationCheck = [];
@@ -530,14 +547,14 @@ async function main() {
                 if (!validationCheck.includes(false)) {
                     // ORGANISE THE DATA
                     let newUserData = {
-                        _id : ObjectId(userId),
+                        _id: ObjectId(userId),
                         username,
                         email,
-                        password:userId.password,
-                        ownCar:userId.ownCar,
+                        password: userId.password,
+                        ownCar: userId.ownCar,
                         contact,
-                        favorite:userId.favorite,
-                        dateJoin:userId.dateJoin,
+                        favorite: userId.favorite,
+                        dateJoin: userId.dateJoin,
                         first_name,
                         last_name
                     };
@@ -571,7 +588,7 @@ async function main() {
                     });
                 }
             }
-        } 
+        }
         catch (e) {
             message.push("Unable to update User")
             res.status(500);
@@ -580,6 +597,98 @@ async function main() {
                 message,
             })
             console.log(e);
+        }
+    })
+    // ADD CAR PATH: ADD ANOTHER TO CARS
+    app.post('/user/add_car', async (req, res) => {
+        let message = [];
+
+        try {
+            let validationCheck = [];
+            // Load in the data
+            let userId = req.body.userId || "";
+            let carPlate = req.body.carPlate || "";
+            let ownerId = req.body.ownerId || "";
+            let ownerIdType = req.body.ownerIdType || "0";
+
+            let errMessage = [
+                `${carPlate} already exist in record`,
+            ];
+
+            let res4 = CAR_INFO.aggregate([
+                { $match: { carPlate: req.body.carPlate } },
+                {
+                    $group: {
+                        _id: null,
+                        count: { $sum: 1 }
+                    }
+                }]).toArray();
+            [checkCarPlateOk] = await res4;
+            validationCheck.push(Functions.checkMatchCount(checkCarPlateOk));
+            validationCheck.filter((e, index) => {
+                !e ? message.push(errMessage[index]) : null;
+            })
+            // FIRST ROUND VALIDATION
+            if (validationCheck.includes(false)) {
+                console.log(message)
+                res.status(406);
+                res.send({
+                    auth: false,
+                    message
+                });
+            } else {
+                // Add car to car_details
+                let res1 = await CAR_INFO.insertOne({
+                    user_id : ObjectId( userId ),
+                    carPlate,
+                    ownerId,
+                    ownerIdType,
+                    availability: false,
+                    dateInserted: Functions.currentDate()
+                });
+
+                // Get the _id of the inserted car 
+                let car = { _id: res1.insertedId }
+                console.log(car)
+
+                // Push the new car into car_users > cars
+                CAR_OWNER.updateOne({
+                    "_id": ObjectId( userId )
+                }, {
+                    '$push': {
+                        'cars': {
+                            _id: ObjectId(car._id),
+                            carPlate
+                        }
+                    }
+                })
+                // find from database and send both data back
+                let userData = await CAR_OWNER.findOne({ '_id': ObjectId(userId) })
+                let carData = await CAR_INFO.find({ 'user_id': ObjectId(userId) }).toArray();
+
+                userData.cars = carData;
+                // remove password and detail not needed
+                delete userData["password"]
+
+                message.push("New car inserted")
+                res.status(200);
+                res.send({
+                    userData,
+                    auth: true,
+                    message
+                })
+                console.log(message)
+            }
+
+        }
+        catch (e) {
+            message.push("Error accessing the database")
+            res.status(500);
+            res.send({
+                auth: false,
+                message
+            })
+            console.log(e)
         }
     })
 
@@ -606,6 +715,9 @@ async function main() {
     // ==========================================================
 
     // ================== C A R   R O U T E =====================
+
+
+
     // READ PATH : ALL CAR LISTING
     app.get('/car/listing', async (req, res) => {
         console.log("======= CAR LISTING ========")
