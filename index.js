@@ -383,7 +383,7 @@ async function main() {
                     if (ownCar) {
                         // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
                         let res2 = await CAR_INFO.insertOne({
-                            user_id: user._id,
+                            userId: user._id,
                             carPlate,
                             currentOwnerId: ownerId,
                             currentOwnerIdType: ownerIdType,
@@ -397,7 +397,7 @@ async function main() {
                                 $set: {
                                     cars: [
                                         {
-                                            car_id: ObjectId(car._id),
+                                            carId: ObjectId(car._id),
                                             carPlate,
                                         }
                                     ]
@@ -639,7 +639,7 @@ async function main() {
             } else {
                 // Add car to car_details
                 let res1 = await CAR_INFO.insertOne({
-                    user_id : ObjectId( userId ),
+                    userId: ObjectId(userId),
                     carPlate,
                     ownerId,
                     ownerIdType,
@@ -653,7 +653,7 @@ async function main() {
 
                 // Push the new car into car_users > cars
                 CAR_OWNER.updateOne({
-                    "_id": ObjectId( userId )
+                    "_id": ObjectId(userId)
                 }, {
                     '$push': {
                         'cars': {
@@ -663,8 +663,9 @@ async function main() {
                     }
                 })
                 // find from database and send both data back
-                let userData = await CAR_OWNER.findOne({ '_id': ObjectId(userId) })
-                let carData = await CAR_INFO.find({ 'user_id': ObjectId(userId) }).toArray();
+                let userData = await CAR_OWNER.findOne({ _id: ObjectId(userId) })
+                let carData = await CAR_INFO.find({ userId: ObjectId(userId) }).toArray();
+                console.log(carData)
 
                 userData.cars = carData;
                 // remove password and detail not needed
@@ -689,6 +690,76 @@ async function main() {
                 message
             })
             console.log(e)
+        }
+    })
+    // DELETE CAR PATH : REMOVE CAR FROM HIS CURRENT COLLECTION
+    // - will not remove from inventory of car_details
+    app.delete('/user/delete_car/:carId', async (req, res) => {
+        console.log("===== DELETE CAR FROM USER INVENTORY ======")
+        let message = []
+        try {
+            let userData = [];
+            let carId = req.params.carId || "";
+            let res1 = await CAR_INFO
+                .findOne(
+                    { _id: ObjectId(carId) }
+                )
+
+            console.log(res1.userId);
+            userId = res1.userId
+
+            let res2 = await CAR_OWNER.updateOne({
+                '_id': ObjectId(userId)
+            }, {
+                '$pull': {
+                    'cars': {
+                        '_id': ObjectId(carId)
+                    }
+                }
+            })
+            let res3 = await CAR_INFO.updateOne(
+                { _id: ObjectId( carId ) },
+                {
+                    $set : {
+                        userId : ObjectId( "624aee00cb5441e647a02a74" ), // Set to default user
+                    },
+                    $push: {
+                        pastOwners : {
+                            _id: ObjectId("624ad83d1e656c7ad5f587fe"),
+                            dateSold : Functions.currentDate()
+                        }
+                    }
+                }
+            )
+
+
+
+            // find from database and send both data back
+            userData = await CAR_OWNER.findOne({ _id: ObjectId(userId) })
+            let carData = await CAR_INFO.find({ userId: ObjectId(userId) }).toArray();
+            // console.log("carData =>", carData)
+
+            userData.cars = carData;
+            // // remove password and detail not needed
+            delete userData["password"]
+
+            message.push(`We have removed ${ res1.carPlate} from your inventory.`);
+            res.status(200);
+            res.send({
+                userData,
+                auth: true,
+                message
+            });
+            console.log(message);
+
+        } catch (e) {
+            message.push("Error accessing the database")
+            res.status(500);
+            res.send({
+                auth: false,
+                message
+            });
+            console.log(e);
         }
     })
 

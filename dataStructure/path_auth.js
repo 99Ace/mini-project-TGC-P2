@@ -28,10 +28,17 @@ bodyData = {
     "first_name" : "Natalie",
     "last_name" : "Portman"
 }
+// POST : ADD A NEW CAR
 path = (URL + "/user/add_car")
 bodyData = {
-    carPlate : "SDL1D"
-}
+    "userId":"624a9a50986ffc067d8fd984",
+    "carPlate": "SMS2S",
+    "ownerId": "001C",
+    "ownerIdType": "0"
+  }
+// DELETE : REMOVE A CAR FROM USER INVENTORY
+path = (URL + "/user/delete_car/:carId")
+
 
 
 {
@@ -45,3 +52,10 @@ bodyData = {
     "ownerId": "001D",
     "ownerIdType": "0"
 }
+
+{
+    "userId":"624a9a50986ffc067d8fd984",
+    "carPlate": "SMS2S",
+    "ownerId": "001C",
+    "ownerIdType": "0"
+  }
