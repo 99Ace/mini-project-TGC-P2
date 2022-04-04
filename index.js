@@ -599,6 +599,8 @@ async function main() {
             console.log(e);
         }
     })
+
+
     // ADD CAR PATH: ADD ANOTHER TO CARS
     app.post('/user/add_car', async (req, res) => {
         let message = [];
@@ -692,8 +694,41 @@ async function main() {
             console.log(e)
         }
     })
+    // ADD CAR DETAILS PATH : ADD MORE DETAILS PRIOR LISTING FOR SALE
+    app.put('/user/:carId/add_to_listing', async (req, res)=> {
+        let message=[]
+        try {
+            let carId = req.params.carId || "";
+            let carToList = await CAR_INFO.findOne(
+                { _id : ObjectId ( carId )}
+            )
+
+            let carPrice = req.body.carPrice || 0;
+            let carRegDate = req.body.carRegDate || null;
+            let carImages = req.body.carImages || [];
+            let carMileage = req.body.carMileage || "";
+            let carAccessories = req.body.carAccessories || "";
+            let carMake = req.body.carMake || "";
+            let carModel = req.body.carModel || "";
+            let carYearOfMake = req.body.carYearOfMake || "";
+            let carCOE = req.body.carCOE || "";
+            let carARF = req.body.carARF || "";
+            let carNoOfOwner = req.body.carNoOfOwner || "";
+
+            
+            res.status(200);
+            res.send("listed")
+
+        }
+        catch (e) {
+            res.status(500);
+            res.send("Error")
+        }
+    })
+
     // DELETE CAR PATH : REMOVE CAR FROM HIS CURRENT COLLECTION
     // - will not remove from inventory of car_details
+    // - update car_details: move current user to pastOwners and create pastOwners log
     app.delete('/user/delete_car/:carId', async (req, res) => {
         console.log("===== DELETE CAR FROM USER INVENTORY ======")
         let message = []
@@ -762,6 +797,7 @@ async function main() {
             console.log(e);
         }
     })
+    
 
     // DELETE PATH : DELETE USER
     app.delete('/user/:userId', async (req, res) => {
