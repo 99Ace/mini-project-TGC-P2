@@ -13,10 +13,10 @@ function calculateDepreciation(info) {
 
     let mthsRemaining = (carYear + 10 - currentYear) * 12 + (carMonth - currentMonth)
 
-    return ((info.carPricing - info.carARF / 2) / mthsRemaining) * 12
+    return ((info.carPrice - info.carARF / 2) / mthsRemaining) * 12
 }
 
-// ===================== VERIFICATION =====================
+// ============== USER VERIFICATION ================
 checkMatchCount = (e) => {
     console.log("E is =>",e)
     return e === undefined ? true : false;
@@ -61,11 +61,38 @@ validateOwnerIdType = (elementValue) => {
     return ownerId.test(elementValue);
 }
 
+validateNoNegativeNumber = (elementValue)=> {
+    return elementValue<0 ? 0 : elementValue
+}
+// ============== CAR INFO VERIFICATION ================
+validateCarDetails = (elementValue) => {
+    let validationCheck =[]
+    let errMessage = [
+        "Pricing",
+    ]
+    console.log(elementValue.carRegDate)
+    validationCheck.push ( 
+        elementValue.carRegDate !== null && elementValue.carRegDate!=="" 
+    );
+    validationCheck.push ( elementValue.carImages.length === 0 ); 
+    validationCheck.push ( elementValue.carMileage >= 0 );
+    validationCheck.push ( elementValue.carYearOfMake > 0);
+    validationCheck.push ( elementValue.carCOE >= 0 );
+    validationCheck.push ( elementValue.carARF >= 0 );
+    validationCheck.push ( elementValue.carNoOfOwner >= 1 );
+    return (validationCheck)
+}
+
+
 
 module.exports = {
+    // Validation user
     checkMatchCount,
     validateUser, validateEmail, validateContact, validatePassword,
     validateCarPlate, validateOwnerId, validateOwnerIdType,
+    // Validation car info
+    validateNoNegativeNumber, validateCarDetails,
+
     currentDate,
     calculateDepreciation,
 }

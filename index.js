@@ -130,6 +130,7 @@ async function main() {
         }
     }
 
+
     // ==========================================================
     // ===================== R O U T E S ========================
     // ==========================================================
@@ -572,7 +573,7 @@ async function main() {
                     message.push("Profile is updated")
                     res.status(200);
                     res.send({
-                        newUserData,
+                        userData : newUserData,
                         auth: true,
                         message
                     })
@@ -695,34 +696,81 @@ async function main() {
         }
     })
     // ADD CAR DETAILS PATH : ADD MORE DETAILS PRIOR LISTING FOR SALE
-    app.put('/user/:carId/add_to_listing', async (req, res)=> {
-        let message=[]
+    app.put('/user/:carId/add_to_listing', async (req, res) => {
+        let message = []
         try {
             let carId = req.params.carId || "";
             let carToList = await CAR_INFO.findOne(
-                { _id : ObjectId ( carId )}
+                { _id: ObjectId(carId) }
             )
-
-            let carPrice = req.body.carPrice || 0;
+            console.log(carToList)
+            let carPrice = parseInt(req.body.carPrice) || 0;
             let carRegDate = req.body.carRegDate || null;
             let carImages = req.body.carImages || [];
-            let carMileage = req.body.carMileage || "";
-            let carAccessories = req.body.carAccessories || "";
+            let carMileage = parseInt(req.body.carMileage) || 0;
             let carMake = req.body.carMake || "";
             let carModel = req.body.carModel || "";
-            let carYearOfMake = req.body.carYearOfMake || "";
-            let carCOE = req.body.carCOE || "";
-            let carARF = req.body.carARF || "";
-            let carNoOfOwner = req.body.carNoOfOwner || "";
+            let carYearOfMake = parseInt(req.body.carYearOfMake) || 0;
+            let carCOE = parseInt(req.body.carCOE) || 0;
+            let carARF = parseInt(req.body.carARF) || 0;
+            let carNoOfOwner = parseInt(req.body.carNoOfOwner) || 1;
+            // Optional
+            let carAccessories = req.body.carAccessories || [];
 
-            
+            // check if values are negative 
+            carPrice = validateNoNegativeNumber(carPrice)
+            carMileage = validateNoNegativeNumber(carMileage)
+            carYearOfMake = validateNoNegativeNumber(carYearOfMake)
+            carCOE = validateNoNegativeNumber(carCOE)
+            carARF = validateNoNegativeNumber(carARF)
+            carNoOfOwner = validateNoNegativeNumber(carNoOfOwner)
+
+            let info = {
+                carPrice, carRegDate, carImages, carMileage,
+                carYearOfMake, carCOE, carARF, carNoOfOwner
+            }
+            console.log(Functions.validateCarDetails(info))
+
+            // check if carRegDate is in date format else convert it
+            !(carRegDate instanceof Date) ? carRegDate = new Date(carRegDate) : null;
+            carToList.dateListed === undefined ? dateListed = Functions.currentDate(): dateListed=carToList.dateListed;
+
+            let carDetails = {
+                carPrice, carRegDate, carImages, carMileage,
+                carYearOfMake, carCOE, carARF, carNoOfOwner,
+                carMake, carModel, dateListed
+            }
+            console.log("Car Price =>", carDetails)
+
+            await CAR_INFO.updateOne(
+                { _id: ObjectId( carId ) },
+                { $set : {
+                    carDetails,
+                    availability : true
+                } }
+            )
+
+            // find from database and send both data back
+            userData = await CAR_OWNER.findOne({ _id: ObjectId(carToList.userId) })
+            carData = await CAR_INFO.find({ userId: ObjectId(carToList.userId) }).toArray();
+
+            // // remove password and detail not needed
+            delete userData["password"]
+            userData.cars = carData;
+
+            message.push("Car info is updated")
             res.status(200);
-            res.send("listed")
+            res.send({
+                userData,
+                auth: true,
+                message
+            })
+            console.log(message)
 
         }
         catch (e) {
             res.status(500);
-            res.send("Error")
+            res.send({e})
         }
     })
 
@@ -753,15 +801,15 @@ async function main() {
                 }
             })
             let res3 = await CAR_INFO.updateOne(
-                { _id: ObjectId( carId ) },
+                { _id: ObjectId(carId) },
                 {
-                    $set : {
-                        userId : ObjectId( "624aee00cb5441e647a02a74" ), // Set to default user
+                    $set: {
+                        userId: ObjectId("624aee00cb5441e647a02a74"), // Set to default user
                     },
                     $push: {
-                        pastOwners : {
+                        pastOwners: {
                             _id: ObjectId("624ad83d1e656c7ad5f587fe"),
-                            dateSold : Functions.currentDate()
+                            dateSold: Functions.currentDate()
                         }
                     }
                 }
@@ -778,7 +826,7 @@ async function main() {
             // // remove password and detail not needed
             delete userData["password"]
 
-            message.push(`We have removed ${ res1.carPlate} from your inventory.`);
+            message.push(`We have removed ${res1.carPlate} from your inventory.`);
             res.status(200);
             res.send({
                 userData,
@@ -797,7 +845,7 @@ async function main() {
             console.log(e);
         }
     })
-    
+
 
     // DELETE PATH : DELETE USER
     app.delete('/user/:userId', async (req, res) => {
