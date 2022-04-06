@@ -152,7 +152,7 @@ async function main() {
     // ==========================================================
 
     // ===================== A U T H ============================
-    // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful
+    // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful  (TEST PASS ***)
     app.get('/user/:username/:password/login', async (req, res) => {
         console.log("=======LOGIN AUTH ROUTE========")
         let message = [];
@@ -166,6 +166,7 @@ async function main() {
                 Functions.validateUser(username) &&
                 password.length > 5
             );
+            console.log(Functions.validateUser(username), validationCheck)
             if (!validationCheck.includes(false)) {
                 // find and download the data from database
                 let userData = await CAR_OWNER.findOne(
@@ -190,7 +191,7 @@ async function main() {
                         console.log(userData.ownCar)
                         if (userData.ownCar) {
                             carData = await CAR_INFO.find(
-                                { 'user_id': ObjectId(userData._id) }
+                                { userId: ObjectId(userData._id) }
                             ).toArray();
                         }
                         userData.cars = carData;
@@ -225,7 +226,7 @@ async function main() {
             })
         }
     })
-    // PROFILE PATH : VIEW USER PROFILE 
+    // PROFILE PATH : VIEW USER PROFILE (TEST PASS ***)
     app.get('/user/:username/profile', async (req, res) => {
         let message = [];
         try {
@@ -236,7 +237,7 @@ async function main() {
             // console.log(userData ,req.params.username)
             if (userData.ownCar) {
                 carData = await CAR_INFO.find(
-                    { 'user_id': ObjectId(userData._id) }
+                    { userId: ObjectId(userData._id) }
                 ).toArray();
             }
             // insert carData into userData  
@@ -263,7 +264,7 @@ async function main() {
             console.log(e)
         }
     })
-    // REGISTER PATH : CREATE A NEW USER
+    // REGISTER PATH : CREATE A NEW USER (TEST PASS ***)
     app.post('/user/register', async (req, res) => {
         console.log("======= REGISTER ROUTE ========")
         let message = []
@@ -408,8 +409,8 @@ async function main() {
                         console.log("insert car details", res1)
 
                         // find from database and send both data back
-                        userData = await CAR_OWNER.findOne({ '_id': ObjectId(user._id) })
-                        carData = await CAR_INFO.find({ 'user_id': ObjectId(user._id) }).toArray();
+                        userData = await CAR_OWNER.findOne({ _id: ObjectId(user._id) })
+                        carData = await CAR_INFO.find({ userId: ObjectId(user._id) }).toArray();
                     }
                     userData.cars = carData;
                     // remove password and detail not needed
@@ -446,17 +447,17 @@ async function main() {
             console.log(e)
         }
     })
-    // UPDATE PATH : EDIT USER PROFILE
-    app.put('/user/update', async (req, res) => {
+    // UPDATE PATH : EDIT USER PROFILE (TEST PASS ***)
+    app.put('/user/:userId/update', async (req, res) => {
         console.log("======= UPDATE PROFILE ROUTE ========")
         let message = []
         try {
-            let userId = req.body.user_id || " ";
+            let userId = req.params.userId || " ";
             let username = req.body.username || "";
             let email = req.body.email || "";
             let contact = req.body.contact || "";
-            let first_name = req.body.first_name || "";
-            let last_name = req.body.last_name || "";
+            let firstName = req.body.firstName || "";
+            let lastName = req.body.lastName || "";
 
             console.log(req.body.user_id);
 
@@ -546,34 +547,39 @@ async function main() {
                 );
                 // If pass Validation : insert into DB
                 if (!validationCheck.includes(false)) {
-                    // ORGANISE THE DATA
-                    let newUserData = {
-                        _id: ObjectId(userId),
-                        username,
-                        email,
-                        password: userId.password,
-                        ownCar: userId.ownCar,
-                        contact,
-                        favorite: userId.favorite,
-                        dateJoin: userId.dateJoin,
-                        first_name,
-                        last_name
-                    };
-
+                    // Save the modified fields
                     await CAR_OWNER.updateOne(
                         {
                             _id: ObjectId(userId)
                         },
                         {
-                            "$set": newUserData
+                            "$set": {
+                                username,
+                                email,
+                                contact,
+                                firstName,
+                                lastName
+                            }
                         }
                     );
-                    // console.log("insert car owner", response);
+
+                    // Find the user
+                    let res4 = await CAR_OWNER.findOne(
+                        { _id: ObjectId(userData._id) }
+                    );
+                    // console.log(userData ,req.params.username)
+                    carData = await CAR_INFO.find(
+                        { userId: ObjectId(userData._id) }
+                    ).toArray();
+                    // insert carData into userData  
+                    res4.cars = carData;
+                    // remove password and detail not needed
+                    delete res4["password"];
 
                     message.push("Profile is updated")
                     res.status(200);
                     res.send({
-                        userData : newUserData,
+                        userData: res4,
                         auth: true,
                         message
                     })
@@ -600,9 +606,7 @@ async function main() {
             console.log(e);
         }
     })
-
-
-    // ADD CAR PATH: ADD ANOTHER TO CARS
+    // ADD CAR PATH: ADD NEW CAR TO OWNER'S INVENTORY (TEST PASS ***)
     app.post('/user/add_car', async (req, res) => {
         let message = [];
 
@@ -611,8 +615,8 @@ async function main() {
             // Load in the data
             let userId = req.body.userId || "";
             let carPlate = req.body.carPlate || "";
-            let ownerId = req.body.ownerId || "";
-            let ownerIdType = req.body.ownerIdType || "0";
+            let currentOwnerId = req.body.ownerId || "";
+            let currentOwnerIdType = req.body.ownerIdType || "0";
 
             let errMessage = [
                 `${carPlate} already exist in record`,
@@ -644,8 +648,8 @@ async function main() {
                 let res1 = await CAR_INFO.insertOne({
                     userId: ObjectId(userId),
                     carPlate,
-                    ownerId,
-                    ownerIdType,
+                    currentOwnerId,
+                    currentOwnerIdType,
                     availability: false,
                     dateInserted: Functions.currentDate()
                 });
@@ -695,7 +699,7 @@ async function main() {
             console.log(e)
         }
     })
-    // ADD CAR DETAILS PATH : ADD MORE DETAILS PRIOR LISTING FOR SALE
+    // ADD CAR DETAILS PATH : ADD MORE DETAILS PRIOR LISTING FOR SALE (TEST PASS ***)
     app.put('/user/:carId/add_to_listing', async (req, res) => {
         let message = []
         try {
@@ -733,7 +737,7 @@ async function main() {
 
             // check if carRegDate is in date format else convert it
             !(carRegDate instanceof Date) ? carRegDate = new Date(carRegDate) : null;
-            carToList.dateListed === undefined ? dateListed = Functions.currentDate(): dateListed=carToList.dateListed;
+            carToList.dateListed === undefined ? dateListed = Functions.currentDate() : dateListed = carToList.dateListed;
 
             let carDetails = {
                 carPrice, carRegDate, carImages, carMileage,
@@ -743,11 +747,13 @@ async function main() {
             console.log("Car Price =>", carDetails)
 
             await CAR_INFO.updateOne(
-                { _id: ObjectId( carId ) },
-                { $set : {
-                    carDetails,
-                    availability : true
-                } }
+                { _id: ObjectId(carId) },
+                {
+                    $set: {
+                        carDetails,
+                        availability: true
+                    }
+                }
             )
 
             // find from database and send both data back
@@ -770,11 +776,90 @@ async function main() {
         }
         catch (e) {
             res.status(500);
-            res.send({e})
+            res.send({ e })
         }
     })
+    // MARK CAR SOLD PATH : PASS ONLY ID (TEST PASS ***)
+    app.put('/user/:carId/car_sold', async (req, res) => {
+        let message = []
+        try {
+            let carId = req.params.carId || "";
+            let res1 = await CAR_INFO
+                .findOne(
+                    { _id: ObjectId(carId) }
+                )
+            console.log(res1);
 
-    // DELETE CAR PATH : REMOVE CAR FROM HIS CURRENT COLLECTION
+            if (res1.availability) {
+                userId = res1.userId
+
+                let res2 = await CAR_OWNER.updateOne({
+                    '_id': ObjectId(userId)
+                }, {
+                    '$pull': {
+                        'cars': {
+                            '_id': ObjectId(carId)
+                        }
+                    }
+                })
+                let res3 = await CAR_INFO.updateOne(
+                    { _id: ObjectId(carId) },
+                    {
+                        $set: {
+                            userId: ObjectId("624aee00cb5441e647a02a74"), // Set to default user
+                            availability: false
+                        },
+                        $push: {
+                            pastOwners: {
+                                _id: ObjectId("624ad83d1e656c7ad5f587fe"),
+                                dateSold: Functions.currentDate()
+                            }
+                        }
+                    }
+                )
+                // find from database and send both data back
+                userData = await CAR_OWNER.findOne({ _id: ObjectId(userId) })
+                let carData = await CAR_INFO.find({ userId: ObjectId(userId) }).toArray();
+                // console.log("carData =>", carData)
+
+                userData.cars = carData;
+                // remove password
+                delete userData["password"]
+
+
+                message.push(` ${res1.carPlate} is sold!`)
+                res.status(200);
+                res.send({
+                    userData,
+                    auth: true,
+                    message
+                })
+                console.log(message)
+            }
+            else {
+                message.push("Car is not listed")
+                res.status(406);
+                res.send({
+                    auth: false,
+                    message
+                })
+            }
+
+        }
+        catch (e) {
+            message.push("Error accessing the database")
+            res.status(500);
+            res.send({
+                auth: false,
+                message
+            })
+            console.log(e)
+        }
+
+    })
+    // MARK CAR UNSOLD : PENDING DUE TO TIME
+
+    // DELETE CAR PATH : REMOVE CAR FROM HIS CURRENT COLLECTION (TEST PASS ***)
     // - will not remove from inventory of car_details
     // - update car_details: move current user to pastOwners and create pastOwners log
     app.delete('/user/delete_car/:carId', async (req, res) => {
@@ -788,52 +873,57 @@ async function main() {
                     { _id: ObjectId(carId) }
                 )
 
-            console.log(res1.userId);
-            userId = res1.userId
+            console.log("USERID =>", res1.userId);
+            if (res1.userId == "624aee00cb5441e647a02a74") {
+                message.push(`${res1.carPlate} not found in your inventory`);
+                res.status(406);
+                res.send({
+                    auth: false,
+                    message
+                });
+                console.log(message);
+            }
+            else {
+                const userId = res1.userId
 
-            let res2 = await CAR_OWNER.updateOne({
-                '_id': ObjectId(userId)
-            }, {
-                '$pull': {
-                    'cars': {
-                        '_id': ObjectId(carId)
-                    }
-                }
-            })
-            let res3 = await CAR_INFO.updateOne(
-                { _id: ObjectId(carId) },
-                {
-                    $set: {
-                        userId: ObjectId("624aee00cb5441e647a02a74"), // Set to default user
-                    },
-                    $push: {
-                        pastOwners: {
-                            _id: ObjectId("624ad83d1e656c7ad5f587fe"),
-                            dateSold: Functions.currentDate()
+                let res2 = await CAR_OWNER.update(
+                    { _id: ObjectId(userId) },
+                    { $pull: { cars: { carId: ObjectId(carId) } } }
+                );
+                let res3 = await CAR_INFO.updateOne(
+                    { _id: ObjectId(carId) },
+                    {
+                        $set: {
+                            userId: ObjectId("624aee00cb5441e647a02a74"), // Set to default user
+                        },
+                        $push: {
+                            pastOwners: {
+                                _id: ObjectId(userId),
+                                dateSold: Functions.currentDate()
+                            }
                         }
                     }
-                }
-            )
+                )
+                console.log("Before returning data", userId)
+                // find from database and send both data back
+                userData = await CAR_OWNER.findOne({ _id: ObjectId(userId) })
+                let carData = await CAR_INFO.find({ userId: ObjectId(userId) }).toArray();
+                // console.log("carData =>", carData)
 
+                userData.cars = carData;
+                // // remove password and detail not needed
+                delete userData["password"]
 
+                message.push(`We have removed ${res1.carPlate} from your inventory.`);
+                res.status(200);
+                res.send({
+                    userData,
+                    auth: true,
+                    message
+                });
+                console.log(message);
+            }
 
-            // find from database and send both data back
-            userData = await CAR_OWNER.findOne({ _id: ObjectId(userId) })
-            let carData = await CAR_INFO.find({ userId: ObjectId(userId) }).toArray();
-            // console.log("carData =>", carData)
-
-            userData.cars = carData;
-            // // remove password and detail not needed
-            delete userData["password"]
-
-            message.push(`We have removed ${res1.carPlate} from your inventory.`);
-            res.status(200);
-            res.send({
-                userData,
-                auth: true,
-                message
-            });
-            console.log(message);
 
         } catch (e) {
             message.push("Error accessing the database")
@@ -847,6 +937,11 @@ async function main() {
     })
 
 
+
+
+
+
+    
     // DELETE PATH : DELETE USER
     app.delete('/user/:userId', async (req, res) => {
         console.log("===== DELETE USER ======")

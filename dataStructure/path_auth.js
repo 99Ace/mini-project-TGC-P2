@@ -2,17 +2,15 @@
 // POST : TO REGISTER USER
 path = (URL + "/user/register")
 bodyData = {
-    "username": "",
-    "email": "",
-    "password": "",
-    "passwordConfirm": "",
-    "contact": "",
-    "ownCar": false,
-    // optional
-    "carPlate": "",
-    "ownerId": "",
+    "username": "Henry001",
+    "email": "henry001@gmail.com",
+    "password": "secret",
+    "passwordConfirm": "secret",
+    "contact": "80000001",
+    "ownCar": "true",
+    "carPlate": "SDL1D",
+    "ownerId": "001D",
     "ownerIdType": "0"
-
 }
 // GET : TO LOGIN USER
 path = (URL + "/user/:username/:password/login")
@@ -25,8 +23,8 @@ bodyData = {
     "username": "Natalie",
     "email": "natalie@gmail.co",
     "contact": "91223322",
-    "first_name": "Natalie",
-    "last_name": "Portman"
+    "firstName": "Natalie",
+    "lastName": "Portman"
 }
 // POST : ADD A NEW CAR
 path = (URL + "/user/add_car")
@@ -39,39 +37,17 @@ bodyData = {
 // PUT : UPDATE DETAILS FOR CAR TO BE LISTED
 path = (URL + "/user/:carId/add_to_listing")
 bodyData = {
-    "carPrice": "88888",
-    "carRegDate": "",
-    "carImages": "",
-    "carMileage": "",
-    "carAccessories": "",
-    "carMake": "",
-    "carModel": "",
-    "carYearOfMake": "",
-    "carCOE": "",
-    "carARF": "",
-    "carNoOfOwner": ""
-}
+    "carPrice": "288888",
+    "carRegDate": "2021-12-12",
+    "carImages": [],
+    "carMileage": "1000",
+    "carAccessories": [],
+    "carMake": "Porsche",
+    "carModel": "Boxster",
+    "carYearOfMake": "2021",
+    "carCOE": "100000",
+    "carARF": "80000",
+    "carNoOfOwner": "1"
+  }
 // DELETE : REMOVE A CAR FROM USER INVENTORY
 path = (URL + "/user/delete_car/:carId")
-
-
-
-// TESTING DATAS
-regData = {
-    "username": "Henry001",
-    "email": "henry001@gmail.com",
-    "password": "secret",
-    "passwordConfirm": "secret",
-    "contact": "80000001",
-    "ownCar": "true",
-    "carPlate": "SDL1D",
-    "ownerId": "001D",
-    "ownerIdType": "0"
-}
-
-insertNewCar = {
-    "userId": "624a9a50986ffc067d8fd984",
-    "carPlate": "SMS2S",
-    "ownerId": "001C",
-    "ownerIdType": "0"
-}
