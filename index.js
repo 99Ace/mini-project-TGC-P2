@@ -194,7 +194,6 @@ async function main() {
                                 { userId: ObjectId(userData._id) }
                             ).toArray();
                         }
-                        console.log(userData.loginCode)
 
                         if (!userData.auth) {
                             await CAR_OWNER.updateOne(
@@ -205,7 +204,6 @@ async function main() {
                                     }
                                 }
                             )
-                            userData.loginCode = loginCode
                         }
 
                         userData.cars = carData;
@@ -1090,8 +1088,9 @@ async function main() {
                     }
                 }
             );
+            console.log("Logout:Find user=>",userData)
             if (userData.auth) {
-                userData = await CAR_OWNER.updateOne(
+                await CAR_OWNER.updateOne(
                     {
                         _id: ObjectId(userId),
                     },
@@ -1104,7 +1103,7 @@ async function main() {
                 message.push(`${userData.username} is logout! See you again soon!`)
                 res.status(200);
                 res.send({
-                    auth: false,
+                    auth: true,
                     message
                 });
                 console.log(message)
@@ -1126,7 +1125,6 @@ async function main() {
                 auth: false,
                 message
             });
-            console.log(e);
         }
     })
 
@@ -1185,10 +1183,6 @@ async function main() {
         }
 
     })
-
-
-
-
 
 
     // DELETE PATH : DELETE USER
