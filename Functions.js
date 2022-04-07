@@ -17,6 +17,7 @@ function calculateDepreciation(info) {
 }
 
 // ============== USER VERIFICATION ================
+
 checkMatchCount = (e) => {
     console.log("E is =>",e)
     return e === undefined ? true : false;

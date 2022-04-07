@@ -1,4 +1,7 @@
 // ===================== A U T H ============================
+
+const { path } = require("express/lib/application")
+
 // POST : TO REGISTER USER
 path = (URL + "/user/register")
 bodyData = {
@@ -15,11 +18,10 @@ bodyData = {
 // GET : TO LOGIN USER
 path = (URL + "/user/:username/:password/login")
 // GET : TO RETRIEVE USER PROFILE
-path = (URL + "/user/:username/profile")
+path = (URL + "/user/:userId/profile")
 // PUT : UPDATE PROFILE
-path = (URL + "/user/update")
+path = (URL + "/user/:userId/update")
 bodyData = {
-    "_id": "6247a857ccaf24188b2fe3c3",
     "username": "Natalie",
     "email": "natalie@gmail.co",
     "contact": "91223322",
@@ -27,15 +29,14 @@ bodyData = {
     "lastName": "Portman"
 }
 // POST : ADD A NEW CAR
-path = (URL + "/user/add_car")
+path = (URL + "/user/:userId/add_car")
 bodyData = {
-    "userId": "624a9a50986ffc067d8fd984",
     "carPlate": "SMS2S",
     "ownerId": "001C",
     "ownerIdType": "0"
 }
 // PUT : UPDATE DETAILS FOR CAR TO BE LISTED
-path = (URL + "/user/:carId/add_to_listing")
+path = (URL + "/user/:userId/:carId/add_to_listing")
 bodyData = {
     "carPrice": "288888",
     "carRegDate": "2021-12-12",
@@ -47,7 +48,11 @@ bodyData = {
     "carYearOfMake": "2021",
     "carCOE": "100000",
     "carARF": "80000",
-    "carNoOfOwner": "1"
+    "carNoOfOwner": "1",
+    "carType": "sports"
   }
 // DELETE : REMOVE A CAR FROM USER INVENTORY
 path = (URL + "/user/delete_car/:carId")
+
+// MARK CAR SOLD PATH : PASS ONLY ID
+path = (URL + "/user/:carId/car_sold")
