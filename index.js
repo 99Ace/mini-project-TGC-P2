@@ -258,6 +258,7 @@ async function main() {
                 { _id: ObjectId(req.params.userId) }
             );
             if (userData.auth) {
+                let carData=[]
                 if (userData.ownCar) {
                     carData = await CAR_INFO.find(
                         { userId: ObjectId(userData._id) }
