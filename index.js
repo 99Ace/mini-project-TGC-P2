@@ -176,7 +176,7 @@ async function main() {
                 console.log(userData)
                 if (userData == null) {
                     message.push("Invalid Username/Password");
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         auth: false,
                         message
@@ -233,7 +233,7 @@ async function main() {
             }
             else {
                 message.push("Invalid username/password");
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -279,7 +279,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} session has expired! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -375,7 +375,7 @@ async function main() {
             // FIRST ROUND VALIDATION
             if (validationCheck.includes(false)) {
                 console.log(message)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -463,7 +463,7 @@ async function main() {
                 // Failed Validation : Suspected not from our website 
                 else {
                     message.push("Unauthorized access detected")
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         auth: false,
                         message
@@ -564,7 +564,7 @@ async function main() {
                 // FIRST ROUND VALIDATION
                 if (validationCheck.includes(false)) {
                     console.log(message)
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         auth: false,
                         message
@@ -622,7 +622,7 @@ async function main() {
                     // Failed Validation : Suspected not from our website 
                     else {
                         message.push("Unauthorized access detected")
-                        res.status(406);
+                        res.status(200);
                         res.send({
                             auth: false,
                             message
@@ -632,7 +632,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} session has expired! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -695,7 +695,7 @@ async function main() {
                 // FIRST ROUND VALIDATION
                 if (validationCheck.includes(false)) {
                     console.log(message)
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         auth: false,
                         message
@@ -747,7 +747,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} session has expired! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -856,7 +856,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} session has expired! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -942,7 +942,7 @@ async function main() {
                 }
                 else {
                     message.push("Car is not listed")
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         auth: false,
                         message
@@ -951,7 +951,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} session has expired! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -971,7 +971,7 @@ async function main() {
         }
 
     })
-    // MARK CAR UNSOLD : PENDING DUE TO TIME
+    // MARK CAR UNSOLD : PENDING DEVELOPMENT 
 
     // DELETE CAR PATH : REMOVE CAR FROM HIS CURRENT COLLECTION (TEST PASS ***)
     // - will not remove from inventory of car_details
@@ -1004,7 +1004,7 @@ async function main() {
                 console.log("USERID =>", res1.userId);
                 if (res1.userId == "624aee00cb5441e647a02a74") {
                     message.push(`${res1.carPlate} not found in your inventory`);
-                    res.status(406);
+                    res.status(200);
                     res.send({
                         auth: false,
                         message
@@ -1054,7 +1054,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} session has expired! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message
@@ -1110,7 +1110,7 @@ async function main() {
             }
             else {
                 message.push(`${userData.username} is not login! Please login again`)
-                res.status(406);
+                res.status(200);
                 res.send({
                     auth: false,
                     message

@@ -50,9 +50,12 @@ bodyData = {
     "carARF": "80000",
     "carNoOfOwner": "1",
     "carType": "sports"
-  }
+}
 // DELETE : REMOVE A CAR FROM USER INVENTORY
 path = (URL + "/user/delete_car/:carId")
 
 // MARK CAR SOLD PATH : PASS ONLY ID
 path = (URL + "/user/:carId/car_sold")
+
+// LOGOUT PATH : SET THE AUTH TO FALSE TO DISABLE ALL OTHER FEATURES
+path = (URL + '/user/:userId/logout')
