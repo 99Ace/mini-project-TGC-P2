@@ -150,7 +150,6 @@ async function main() {
         };
     })
     // ==========================================================
-
     // ===================== A U T H ============================
     // LOGIN PATH : FIND ONE USER - Send back user details if auth successful / empty if unsuccessful  (TEST PASS *** ***)
     app.get('/user/:username/:password/login', async (req, res) => {
@@ -797,9 +796,10 @@ async function main() {
                 let carARF = parseInt(req.body.carARF) || 0;
                 let carNoOfOwner = parseInt(req.body.carNoOfOwner) || 1;
                 let carType = req.body.carType || "sedan";
+                let availability = req.body.availability;
                 // Optional
                 let carAccessories = req.body.carAccessories || [];
-
+                
                 // check if values are negative 
                 carPrice = validateNoNegativeNumber(carPrice);
                 carMileage = validateNoNegativeNumber(carMileage);
@@ -825,13 +825,13 @@ async function main() {
                     carMake, carModel, carType, dateListed
                 }
                 console.log("Car Price =>", carDetails)
-
+                console.log("AVAILABILITY STATUS : ",availability)
                 await CAR_INFO.updateOne(
                     { _id: ObjectId(carId) },
                     {
                         $set: {
                             carDetails,
-                            availability: true
+                            availability
                         }
                     }
                 )
@@ -1231,7 +1231,7 @@ async function main() {
 
 
     // ==========================================================
-    app.post('/', async (req, res) => {
+    app.get('/', async (req, res) => {
         let message = [];
 
         res.send("Done")
