@@ -850,12 +850,13 @@ async function main() {
 
                 // check if carRegDate is in date format else convert it
                 !(carRegDate instanceof Date) ? carRegDate = new Date(carRegDate) : null;
-                carToList.dateListed === undefined ? dateListed = Functions.currentDate() : dateListed = carToList.dateListed;
+                carToList.dateListed === undefined ? dateListed = Functions.currentDate() : dateListed = carToList.carDetails.dateListed;
 
                 let carDetails = {
                     carPrice, carRegDate, carImages, carMileage,
                     carYearOfMake, carCOE, carARF, carNoOfOwner,
-                    carMake, carModel, carType, dateListed
+                    carMake, carModel, carType, dateListed,
+                    carImages : carToList.carDetails.carImages
                 }
                 console.log("Car Price =>", carDetails)
                 console.log("AVAILABILITY STATUS : ", availability)
