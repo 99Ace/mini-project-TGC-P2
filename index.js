@@ -400,6 +400,7 @@ async function main() {
                 if (!validationCheck.includes(false)) {
                     let dateJoin = Functions.currentDate();
                     password = cryptr.encrypt(password)
+
                     // ORGANISE THE DATA
                     let userData = {
                         username,
@@ -416,12 +417,27 @@ async function main() {
                     // console.log("insert car owner", response);
                     let user = { '_id': res1.insertedId };
                     if (ownCar) {
+                        // SET UP EMPTY CAR INFO
+                        let carDetails = {
+                            carPrice : "", 
+                            carRegDate: "", 
+                            carImages: [],  
+                            carMileage: "",
+                            carYearOfMake: "", 
+                            carCOE: "", 
+                            carARF:"", 
+                            carNoOfOwner:"",
+                            carMake:"", 
+                            carModel:"", 
+                            carType:"", 
+                        }
                         // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
                         let res2 = await CAR_INFO.insertOne({
                             userId: user._id,
                             carPlate,
                             currentOwnerId: ownerId,
                             currentOwnerIdType: ownerIdType,
+                            carDetails,
                             availability: false,
                             dateInserted: dateJoin
                         });
@@ -699,6 +715,20 @@ async function main() {
                         message
                     });
                 } else {
+                    // SET UP EMPTY CAR INFO
+                    let carDetails = {
+                        carPrice : "", 
+                        carRegDate: "", 
+                        carImages: [],  
+                        carMileage: "",
+                        carYearOfMake: "", 
+                        carCOE: "", 
+                        carARF:"", 
+                        carNoOfOwner:"",
+                        carMake:"", 
+                        carModel:"", 
+                        carType:"", 
+                    };
                     // Add car to car_details
                     let res1 = await CAR_INFO.insertOne({
                         userId: ObjectId(userId),
@@ -706,6 +736,7 @@ async function main() {
                         currentOwnerId,
                         currentOwnerIdType,
                         availability: false,
+                        carDetails,
                         dateInserted: Functions.currentDate()
                     });
 
@@ -738,7 +769,8 @@ async function main() {
                     res.send({
                         userData,
                         auth: true,
-                        message
+                        message,
+                        carId:res1.insertedId
                     })
                     console.log(message)
                 }
@@ -1130,48 +1162,58 @@ async function main() {
 
     // SEARCH PATH : SEARCH BY A FEW QUERY OPTIONS
     app.get('/car/search', async (req, res) => {
+        let message=[];
         console.log("======== SEARCH ========")
         try {
             let carMake = req.query.carMake || ""
-            let carModel = req.query.carModel || ""
-            let priceLower = req.query.priceLower || 0
-            let priceUpper = req.query.priceUpper || 9999999
-            let depreRangeLower = req.query.priceLower || 0
-            let depreRangeUpper = req.query.priceUpper || 999999
-            let yearRegLower = req.query.priceLower || 0
-            let yearRegUpper = req.query.priceUpper || 9999
+            // let carModel = req.query.carModel || ""
+            // let priceLower = req.query.priceLower || 0
+            // let priceUpper = req.query.priceUpper || 9999999
+            // let depreRangeLower = req.query.priceLower || 0
+            // let depreRangeUpper = req.query.priceUpper || 999999
+            // let yearRegLower = req.query.priceLower || 0
+            // let yearRegUpper = req.query.priceUpper || 9999
             let carType = req.query.carType || ""
-
+            // let searchText = req.query.searchText || ""
             // let carType = req.query.carModel || ""
 
-
-            console.log(carMake, carModel, priceLower, priceUpper);
+            console.log(carMake, carType)
+            // console.log(carMake, carModel, priceLower, priceUpper);
 
             let data = await CAR_INFO.find(
                 {
                     $and: [
+                   
+                        // { $text: { $search : searchText } },
                         {
                             'carDetails.carMake': { $regex: carMake, $options: 'i' }
                         },
-                        {
-                            'carDetails.carModel': { $regex: carModel, $options: 'i' }
-                        },
+                        // {
+                        //     'carDetails.carModel': { $regex: carModel, $options: 'i' }
+                        // },
                         // {
                         //     'carDetails.carPricing': {
                         //         "$gte": parseInt(priceLower),
                         //         "$lte": parseInt(priceUpper)
                         //     }
                         // },
+                        {
+                            'carDetails.carType': { $regex: carType, $options: 'i' }
+                        },
+                        {
+                            availability : true
+                        }
 
 
                     ]
                 }
             ).toArray()
             console.log(data.length)
-
+            message.push(`Search found ${data.length} cars`)
             res.send({
+                auth: true,
                 data: data,
-                message: "Search found"
+                message
             })
         }
         catch (e) {
