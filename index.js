@@ -19,6 +19,7 @@ const Cryptr = require('cryptr');
 const { use } = require('express/lib/application');
 const { default: axios } = require('axios');
 const { response } = require('express');
+const { colours } = require('nodemon/lib/config/defaults');
 const cryptr = new Cryptr('myTotalySecretKey');
 
 // Set up dotenv
@@ -255,7 +256,7 @@ async function main() {
                 { _id: ObjectId(req.params.userId) }
             );
             if (userData.auth) {
-                let carData=[]
+                let carData = []
                 if (userData.ownCar) {
                     carData = await CAR_INFO.find(
                         { userId: ObjectId(userData._id) }
@@ -419,17 +420,17 @@ async function main() {
                     if (ownCar) {
                         // SET UP EMPTY CAR INFO
                         let carDetails = {
-                            carPrice : "", 
-                            carRegDate: "", 
-                            carImages: [],  
+                            carPrice: "",
+                            carRegDate: "",
+                            carImages: [],
                             carMileage: "",
-                            carYearOfMake: "", 
-                            carCOE: "", 
-                            carARF:"", 
-                            carNoOfOwner:"",
-                            carMake:"", 
-                            carModel:"", 
-                            carType:"", 
+                            carYearOfMake: "",
+                            carCOE: "",
+                            carARF: "",
+                            carNoOfOwner: "",
+                            carMake: "",
+                            carModel: "",
+                            carType: "",
                         }
                         // INSERT CAR INTO THE CAR_DB, INSERTING THE USER ID
                         let res2 = await CAR_INFO.insertOne({
@@ -717,17 +718,17 @@ async function main() {
                 } else {
                     // SET UP EMPTY CAR INFO
                     let carDetails = {
-                        carPrice : "", 
-                        carRegDate: "", 
-                        carImages: [],  
+                        carPrice: "",
+                        carRegDate: "",
+                        carImages: [],
                         carMileage: "",
-                        carYearOfMake: "", 
-                        carCOE: "", 
-                        carARF:"", 
-                        carNoOfOwner:"",
-                        carMake:"", 
-                        carModel:"", 
-                        carType:"", 
+                        carYearOfMake: "",
+                        carCOE: "",
+                        carARF: "",
+                        carNoOfOwner: "",
+                        carMake: "",
+                        carModel: "",
+                        carType: "",
                     };
                     // Add car to car_details
                     let res1 = await CAR_INFO.insertOne({
@@ -770,7 +771,7 @@ async function main() {
                         userData,
                         auth: true,
                         message,
-                        carId:res1.insertedId
+                        carId: res1.insertedId
                     })
                     console.log(message)
                 }
@@ -831,7 +832,7 @@ async function main() {
                 let availability = req.body.availability;
                 // Optional
                 let carAccessories = req.body.carAccessories || [];
-                
+
                 // check if values are negative 
                 carPrice = validateNoNegativeNumber(carPrice);
                 carMileage = validateNoNegativeNumber(carMileage);
@@ -857,7 +858,7 @@ async function main() {
                     carMake, carModel, carType, dateListed
                 }
                 console.log("Car Price =>", carDetails)
-                console.log("AVAILABILITY STATUS : ",availability)
+                console.log("AVAILABILITY STATUS : ", availability)
                 await CAR_INFO.updateOne(
                     { _id: ObjectId(carId) },
                     {
@@ -867,7 +868,6 @@ async function main() {
                         }
                     }
                 )
-
                 // find from database and send both data back
                 userData = await CAR_OWNER.findOne({ _id: ObjectId(carToList.userId) })
                 carData = await CAR_INFO.find({ userId: ObjectId(carToList.userId) }).toArray();
@@ -898,6 +898,78 @@ async function main() {
         catch (e) {
             res.status(500);
             res.send({ e })
+        }
+    })
+    // ADD CAR IMAGES PATH : 
+    app.put('/user/:userId/:carId/add_images', async (req, res) => {
+        let message = []
+        try {
+            let userId = req.params.userId || "";
+            console.log(req.params.userId)
+            // Find the user
+            let userData = await CAR_OWNER.findOne(
+                { _id: ObjectId(userId) },
+                {
+                    projection: {
+                        username: 1,
+                        auth: 1
+                    }
+                }
+            );
+            if (userData.auth) {
+                let carId = req.params.carId || "";
+                console.log(carId)
+                let carImages = req.body.carImages || [];
+                let availability = req.body.availability || false;
+                console.log(carImages)
+                await CAR_INFO.updateOne(
+                    { _id: ObjectId(carId) },
+                    {
+                        $set: {
+                            'carDetails.carImages': carImages,
+                            availability
+                        }
+                    }
+                )
+
+                // find from database and send both data back
+                let userData = await CAR_OWNER.findOne({ _id: ObjectId(userId) })
+                let carData = await CAR_INFO.find({ userId: ObjectId(userId) }).toArray();
+                // console.log( carData)
+
+                userData.cars = carData;
+                // remove password and detail not needed
+                delete userData["password"]
+                console.log("Pass line 942")
+                message.push("Images updated")
+                res.status(200);
+                res.send({
+                    userData,
+                    auth: true,
+                    message
+                })
+                console.log(message)
+            }
+            else {
+                message.push(`${userData.username} session has expired! Please login again`)
+                res.status(200);
+                res.send({
+                    auth: false,
+                    message
+                });
+                console.log(message)
+            }
+
+        }
+        catch (e) {
+            message.push("Error accessing the database")
+            res.status(500);
+            res.send({
+                auth: false,
+                message
+            })
+            console.log(e)
+            console.log("what happen??")
         }
     })
     // MARK CAR SOLD PATH : PASS ONLY ID (TEST PASS *** )
@@ -1120,7 +1192,7 @@ async function main() {
                     }
                 }
             );
-            console.log("Logout:Find user=>",userData)
+            console.log("Logout:Find user=>", userData)
             if (userData.auth) {
                 await CAR_OWNER.updateOne(
                     {
@@ -1162,7 +1234,7 @@ async function main() {
 
     // SEARCH PATH : SEARCH BY A FEW QUERY OPTIONS
     app.get('/car/search', async (req, res) => {
-        let message=[];
+        let message = [];
         console.log("======== SEARCH ========")
         try {
             let carMake = req.query.carMake || ""
@@ -1183,7 +1255,7 @@ async function main() {
             let data = await CAR_INFO.find(
                 {
                     $and: [
-                   
+
                         // { $text: { $search : searchText } },
                         {
                             'carDetails.carMake': { $regex: carMake, $options: 'i' }
@@ -1201,7 +1273,7 @@ async function main() {
                             'carDetails.carType': { $regex: carType, $options: 'i' }
                         },
                         {
-                            availability : true
+                            availability: true
                         }
 
 

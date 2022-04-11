@@ -51,6 +51,13 @@ bodyData = {
     "carNoOfOwner": "1",
     "carType": "sports"
 }
+// PUT : UPDATE IMAGES FOR SELECTED CAR
+path = (URL + "/user/:userId/:carId/add_images")
+bodyData = {
+    carImages,
+    availability
+}
+
 // DELETE : REMOVE A CAR FROM USER INVENTORY
 path = (URL + "/user/delete_car/:carId")
 
