@@ -130,12 +130,10 @@ async function main() {
             message
         }
     }
-
-
     // ==========================================================
     // ===================== R O U T E S ========================
     // ==========================================================
-    // READ ALL OWNERS ROUTE - ONLY ADMIN ACCESS
+    // READ ALL OWNERS ROUTE - ONLY ADMIN ACCESS (INCOMPLETE)
     app.get('/admin/owners', async (req, res) => {
         try {
             let data = await CAR_OWNER.find().toArray();
@@ -1239,6 +1237,96 @@ async function main() {
         console.log("======== SEARCH ========")
         try {
             let carMake = req.query.carMake || ""
+            let carModel = req.query.carModel || ""
+            // let priceLower = req.query.priceLower || 0
+            // let priceUpper = req.query.priceUpper || 9999999
+            // let depreRangeLower = req.query.priceLower || 0
+            // let depreRangeUpper = req.query.priceUpper || 999999
+            // let yearRegLower = req.query.priceLower || 0
+            // let yearRegUpper = req.query.priceUpper || 9999
+            let carYearOfMake = req.query.carYearOfMake || null
+            let carType = req.query.carType || ""
+            // let carType = req.query.carModel || ""
+            let carYearOfMakeMax, carYearOfMakeMin
+            if (carYearOfMake == null) {
+                carYearOfMakeMax = 2100
+                carYearOfMakeMin = 1900
+            } else {
+                carYearOfMakeMax = parseInt( carYearOfMake )
+                carYearOfMakeMin = parseInt( carYearOfMake )
+            }
+            console.log(carYearOfMake)
+            // console.log(carMake, carModel, priceLower, priceUpper);
+
+            let data = await CAR_INFO.find(
+                {
+                    $and: [
+                        {
+                            'carDetails.carMake': { $regex: carMake, $options: 'i' }
+                        },
+                        {
+                            'carDetails.carModel': { $regex: carModel, $options: 'i' }
+                        },
+                        // {
+                            // 'carDetails.carYearOfMake':  { $in : [carYearOfMake] }
+                            // ticketNumber: { $in: [ 42 ]
+                        // },
+                        {
+                            'carDetails.carType': { $regex: carType, $options: 'i' }
+                        },
+
+                        {
+                            $and: [
+                                { 
+                                    "carDetails.carYearOfMake": {
+                                        $gte: carYearOfMakeMin
+                                    }
+                                },
+                                { 
+                                    "carDetails.carYearOfMake": {
+                                        $lte: carYearOfMakeMax
+                                    }
+                                },
+                            ]
+                        },
+                        // {
+                        //     'carDetails.carPricing': {
+                        //         "$gte": parseInt(priceLower),
+                        //         "$lte": parseInt(priceUpper)
+                        //     }
+                        // },
+                      
+                        {
+                            availability: true
+                        }
+                    ]
+                }
+            ).sort({
+                "carDetails.dateListed":1
+            }).toArray()
+            console.log(data.length)
+            message.push(`Search found ${data.length} cars`)
+            res.send({
+                auth: true,
+                data: data,
+                message
+            })
+        }
+        catch (e) {
+            res.status(500);
+            res.send({
+                message: "Error finding your desired car"
+            })
+            console.log(e)
+        }
+
+    })
+    // SEARCH PATH : SEARCH BY A FEW QUERY OPTIONS
+    app.get('/car/multi_search', async (req, res) => {
+        let message = [];
+        console.log("======== SEARCH ========")
+        try {
+            // let carMake = req.query.carMake || ""
             // let carModel = req.query.carModel || ""
             // let priceLower = req.query.priceLower || 0
             // let priceUpper = req.query.priceUpper || 9999999
@@ -1246,41 +1334,23 @@ async function main() {
             // let depreRangeUpper = req.query.priceUpper || 999999
             // let yearRegLower = req.query.priceLower || 0
             // let yearRegUpper = req.query.priceUpper || 9999
-            let carType = req.query.carType || ""
-            // let searchText = req.query.searchText || ""
+            // let carType = req.query.carType || ""
+            let searchText = req.query.searchText || ""
             // let carType = req.query.carModel || ""
 
-            console.log(carMake, carType)
+            console.log(searchText)
             // console.log(carMake, carModel, priceLower, priceUpper);
 
             let data = await CAR_INFO.find(
                 {
                     $and: [
-
-                        // { $text: { $search : searchText } },
-                        {
-                            'carDetails.carMake': { $regex: carMake, $options: 'i' }
-                        },
-                        // {
-                        //     'carDetails.carModel': { $regex: carModel, $options: 'i' }
-                        // },
-                        // {
-                        //     'carDetails.carPricing': {
-                        //         "$gte": parseInt(priceLower),
-                        //         "$lte": parseInt(priceUpper)
-                        //     }
-                        // },
-                        {
-                            'carDetails.carType': { $regex: carType, $options: 'i' }
-                        },
-                        {
-                            availability: true
-                        }
-
-
+                        { $text: { $search : searchText } },
+                        
                     ]
                 }
-            ).toArray()
+            ).sort({
+                "carDetails.dateListed":1
+            }).toArray()
             console.log(data.length)
             message.push(`Search found ${data.length} cars`)
             res.send({
